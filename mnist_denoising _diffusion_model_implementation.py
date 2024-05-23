@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-import numpy as np
 from typing import List
 from tqdm import tqdm
 import matplotlib.pyplot as plt
@@ -88,7 +87,7 @@ if __name__ == "__main__":
     # testX = np.float32(testX) / 255.
 
     device = 'cuda'
-    batch_size = 64
+    batch_size = 128  # on my 6CB VRAM laptop
     model = UNet()
     optimizer = torch.optim.Adam(model.parameters(), lr=2e-5)
     diffusion_model = DiffusionModel(1000, model, device, trainX)

@@ -1,3 +1,4 @@
+colorama @ file:///home/conda/feedstock_root/build_artifacts/colorama_1666700638685/work
 contourpy==1.2.1
 cycler==0.12.1
 filelock==3.14.0
@@ -30,5 +31,6 @@ six==1.16.0
 sympy==1.12
 torch==2.3.0
 torchvision==0.18.0
+tqdm @ file:///home/conda/feedstock_root/build_artifacts/tqdm_1714854870413/work
 triton==2.3.0
 typing_extensions==4.11.0
