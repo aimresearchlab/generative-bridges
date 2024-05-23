@@ -78,7 +78,7 @@ class DiffusionModel:
             x = mean + sigma * z
         return x
 
-
+# Based on: https://papers-100-lines.medium.com/diffusion-models-from-scratch-mnist-data-tutorial-in-100-lines-of-pytorch-code-a609e1558cee
 if __name__ == "__main__":
     print(f"GPU available: {torch.cuda.is_available()}")
 
