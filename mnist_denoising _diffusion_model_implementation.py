@@ -1,3 +1,5 @@
+import os
+
 import torch
 import torch.nn as nn
 from typing import List
@@ -86,7 +88,7 @@ def save_samples(diffusion_model, nb_images, epoch):
         plt.subplot(9, 9, 1 + i)
         plt.axis('off')
         plt.imshow(samples[i].squeeze(0).clip(0, 1).data.cpu().numpy(), cmap='gray')
-    plt.savefig(f'Imgs/samples_epoch_{epoch}.png')
+    plt.savefig(f'imgs/samples_epoch_{epoch}.png')
     plt.close()
 
 # Based on: https://papers-100-lines.medium.com/diffusion-models-from-scratch-mnist-data-tutorial-in-100-lines-of-pytorch-code-a609e1558cee
@@ -100,6 +102,10 @@ if __name__ == "__main__":
     model = UNet()
     optimizer = torch.optim.Adam(model.parameters(), lr=2e-5)
     diffusion_model = DiffusionModel(1000, model, device, trainX)
+
+    # Create the "Img" folder if it does not exist
+    if not os.path.exists('img'):
+        os.makedirs('img')
 
     # Training
     for epoch in tqdm(range(40_000)):
