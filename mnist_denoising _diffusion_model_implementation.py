@@ -81,14 +81,14 @@ class DiffusionModel:
         return x
 
 
-def save_samples(diffusion_model, nb_images, epoch):
+def save_samples(diffusion_model, nb_images, n_batch):
     samples = diffusion_model.sampling(n_samples=nb_images, use_tqdm=False)
     plt.figure(figsize=(17, 17))
     for i in range(nb_images):
         plt.subplot(9, 9, 1 + i)
         plt.axis('off')
         plt.imshow(samples[i].squeeze(0).clip(0, 1).data.cpu().numpy(), cmap='gray')
-    plt.savefig(f'imgs/samples_epoch_{epoch}.png')
+    plt.savefig(f'imgs/samples_epoch_{n_batch}.png')
     plt.close()
 
 # Based on: https://papers-100-lines.medium.com/diffusion-models-from-scratch-mnist-data-tutorial-in-100-lines-of-pytorch-code-a609e1558cee
@@ -104,16 +104,16 @@ if __name__ == "__main__":
     diffusion_model = DiffusionModel(1000, model, device, trainX)
 
     # Create the "Img" folder if it does not exist
-    if not os.path.exists('img'):
-        os.makedirs('img')
+    if not os.path.exists('imgs'):
+        os.makedirs('imgs')
 
     # Training
-    for epoch in tqdm(range(40_000)):
+    for n_batch in tqdm(range(40_000)):
         loss = diffusion_model.train(batch_size, optimizer)
 
        # Save sampled images every 2000 epochs
-        if (epoch + 1) % 1000 == 0:
-            save_samples(diffusion_model, nb_images=81, epoch=epoch + 1)
+        if (n_batch + 1) % 1000 == 0:
+            save_samples(diffusion_model, nb_images=81, n_batch=n_batch + 1)
 
     # Save final results
-    save_samples(diffusion_model, nb_images=81, epoch='final')
+    save_samples(diffusion_model, nb_images=81, n_batch='final')
