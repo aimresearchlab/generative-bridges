@@ -83,11 +83,9 @@ if __name__ == "__main__":
     print(f"GPU available: {torch.cuda.is_available()}")
 
     trainX, testX = load_mnist_dataset()
-    # trainX = np.float32(trainX) / 255.
-    # testX = np.float32(testX) / 255.
 
     device = 'cuda'
-    batch_size = 128  # on my 6CB VRAM laptop
+    batch_size = 64  # max batch size on my 6GB VRAM laptop
     model = UNet()
     optimizer = torch.optim.Adam(model.parameters(), lr=2e-5)
     diffusion_model = DiffusionModel(1000, model, device, trainX)
