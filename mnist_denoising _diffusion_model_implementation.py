@@ -78,6 +78,17 @@ class DiffusionModel:
             x = mean + sigma * z
         return x
 
+
+def save_samples(diffusion_model, nb_images, epoch):
+    samples = diffusion_model.sampling(n_samples=nb_images, use_tqdm=False)
+    plt.figure(figsize=(17, 17))
+    for i in range(nb_images):
+        plt.subplot(9, 9, 1 + i)
+        plt.axis('off')
+        plt.imshow(samples[i].squeeze(0).clip(0, 1).data.cpu().numpy(), cmap='gray')
+    plt.savefig(f'Imgs/samples_epoch_{epoch}.png')
+    plt.close()
+
 # Based on: https://papers-100-lines.medium.com/diffusion-models-from-scratch-mnist-data-tutorial-in-100-lines-of-pytorch-code-a609e1558cee
 if __name__ == "__main__":
     print(f"GPU available: {torch.cuda.is_available()}")
@@ -94,13 +105,9 @@ if __name__ == "__main__":
     for epoch in tqdm(range(40_000)):
         loss = diffusion_model.train(batch_size, optimizer)
 
-    # Plot results
-    nb_images = 81
-    samples = diffusion_model.sampling(n_samples=nb_images, use_tqdm=False)
-    plt.figure(figsize=(17, 17))
-    for i in range(nb_images):
-        plt.subplot(9, 9, 1 + i)
-        plt.axis('off')
-        plt.imshow(samples[i].squeeze(0).clip(0, 1).data.cpu().numpy(),
-                   cmap='gray')
-    plt.savefig(f'Imgs/samples.png')
+       # Save sampled images every 2000 epochs
+        if (epoch + 1) % 1000 == 0:
+            save_samples(diffusion_model, nb_images=81, epoch=epoch + 1)
+
+    # Save final results
+    save_samples(diffusion_model, nb_images=81, epoch='final')
