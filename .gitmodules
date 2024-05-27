@@ -1,3 +1,6 @@
 [submodule "thirdparty/cdm"]
 	path = thirdparty/cdm
 	url = https://github.com/giannisdaras/cdm.git
+[submodule "thirdparty/diffusion"]
+	path = thirdparty/diffusion
+	url = https://github.com/hojonathanho/diffusion.git
