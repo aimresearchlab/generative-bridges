@@ -1,0 +1,3 @@
+[submodule "thirdparty/cdm"]
+	path = thirdparty/cdm
+	url = https://github.com/giannisdaras/cdm.git
