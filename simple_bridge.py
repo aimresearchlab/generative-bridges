@@ -62,7 +62,7 @@ class SimpleBrownianBridgeDiffusion:
         """
         # create n_steps t
         # messing about with n_steps as small eps gets rounded away
-        t_values = torch.linspace(0, self.T, steps=n_steps + 1, device=device)* (self.T - self._EPS) / self.T
+        t_values = torch.linspace(0, self.T, steps=n_steps + 1, device=self.device)* (self.T - self._EPS) / self.T
 
         # sample x
         delta = (self.T - self._EPS)/ n_steps
@@ -83,7 +83,7 @@ class SimpleBrownianBridgeDiffusion:
             #xi = xi_t + inv_lambda*(self.function_approximator(xi_t, torch.stack(t_list)) - xi_t )*delta + (Z - Z_t)
             xi = xi_t + inv_lambda*(self.function_approximator(xi_t, torch.stack(t_list)) - xi_t )*delta
             if not self._deterministic:
-                dZ = torch.randn(x.shape, device=device)*torch.sqrt(torch.tensor(delta))
+                dZ = torch.randn(x.shape, device=self.device)*torch.sqrt(torch.tensor(delta))
                 xi += dZ
 
             xi_t = xi
