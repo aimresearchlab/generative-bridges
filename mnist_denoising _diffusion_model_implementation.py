@@ -7,6 +7,8 @@ from tqdm import tqdm
 import matplotlib.pyplot as plt
 from unet import UNet
 from utils import load_mnist_dataset
+import argparse
+from torch.utils.tensorboard import SummaryWriter
 
 def unflatten_data(vector, shape=(28, 28)):
     """
@@ -106,25 +108,64 @@ if __name__ == "__main__":
     else:
         print("No GPUs available")
 
-    trainX, testX = load_mnist_dataset()
+    parser = argparse.ArgumentParser(description="Set folders input and output")
+    parser.add_argument('--data_folder', default='/workspace/aim-bridges-data/mnist', type=str, required=False, help='Path to the data folder')
+    parser.add_argument('--imgs_folder', default='/workspace/aim-bridges-img/mnist/denoise', type=str, required=False, help='Path to the imgs folder')
+    parser.add_argument('--models_folder', default='/workspace/aim-bridges-models/denoise', type=str, required=False, help='Path to the models folder')
+    parser.add_argument('--download_data', action='store_true', help='Download the data')
+    parser.add_argument('--verbose', action='store_true')
+    parser.add_argument('--save_images', action='store_true', help='Save images')
+
+    args = parser.parse_args()
+
+        # Create the "data" folder if it does not exist
+    if not os.path.exists(args.data_folder):
+        os.makedirs(args.data_folder)
+    if not os.path.exists(args.imgs_folder):
+        os.makedirs(args.imgs_folder)
+
+    trainY, testY = load_mnist_dataset(root=args.data_folder, download=args.download_data)
 
     device = 'cuda'
-    batch_size = 128  # max batch size on my 6GB VRAM laptop
-    model = UNet()
-    optimizer = torch.optim.Adam(model.parameters(), lr=2e-5)
-    diffusion_model = DiffusionModel(1000, model, device, trainX)
+    batch_size = 68
+    t_steps = 1000
+    deterministic = False  
 
-    # Create the "Img" folder if it does not exist
-    if not os.path.exists('imgs'):
-        os.makedirs('imgs')
+    model = UNet()
+    model = nn.DataParallel(model)
+    optimizer = torch.optim.Adam(model.parameters(), lr=2e-5)
+    diffusion_model = DiffusionModel(t_steps, model, device, trainY)
 
     # Training
+    det_name = 'det' if deterministic else 'stoch'
+    model_name = f'batch_{batch_size}_t_steps_{t_steps}_{det_name}'
+
+    print(f'batch_size: {batch_size}; t_steps: {t_steps}; deterministic: {deterministic}')
+    # Initialize TensorBoard writer
+    writer = SummaryWriter(log_dir=f'{args.models_folder}/runs/{model_name}')
+    checkpoint_steps = (1000/batch_size)*64
     for n_batch in tqdm(range(40_000)):
         loss = diffusion_model.train(batch_size, optimizer)
 
        # Save sampled images every 2000 epochs
-        if (n_batch + 1) % 1000 == 0:
+        if args.save_images and (n_batch + 1) % 1000 == 0:
             save_samples(diffusion_model, nb_images=81, n_batch=n_batch + 1)
+                # Log the loss to TensorBoard
+        writer.add_scalar('Loss/train', loss, n_batch)
+
+        if n_batch % checkpoint_steps == 0:
+            checkpoint_path = os.path.join(f'{args.models_folder}/checkpoints', f"{model_name}_checkpoint_n_batch_{n_batch}.pth")
+            torch.save(model.state_dict(), checkpoint_path)
+            if args.verbose:
+                print(f"Checkpoint saved to {checkpoint_path}")
+
+    # Close the writer when done
+        # Save the final model
+    final_model_path = os.path.join(f'{args.models_folder}/checkpoints', f"{model_name}_final_model.pth")
+    torch.save(model.state_dict(), final_model_path)
+    print(f"Final model saved to {final_model_path}")
+    writer.close()
 
     # Save final results
-    save_samples(diffusion_model, nb_images=81, n_batch='final')
+    if args.save_images:
+        save_samples(diffusion_model, nb_images=81, n_batch='final')

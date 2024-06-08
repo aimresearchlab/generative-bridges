@@ -177,14 +177,14 @@ if __name__ == "__main__":
         writer.add_scalar('Loss/train', loss, n_batch)
 
         if n_batch % checkpoint_steps == 0:
-            checkpoint_path = os.path.join(f'{args.models_folder}/checkpoints/{model_name}', f"checkpoint_n_batch_{n_batch}.pth")
+            checkpoint_path = os.path.join(f'{args.models_folder}/checkpoints', f"{model_name}_checkpoint_n_batch_{n_batch}.pth")
             torch.save(model.state_dict(), checkpoint_path)
             if args.verbose:
                 print(f"Checkpoint saved to {checkpoint_path}")
 
     # Close the writer when done
         # Save the final model
-    final_model_path = os.path.join(f'{args.models_folder}/checkpoints/{model_name}', "final_model.pth")
+    final_model_path = os.path.join(f'{args.models_folder}/checkpoints', f"{model_name}_final_model.pth")
     torch.save(model.state_dict(), final_model_path)
     print(f"Final model saved to {final_model_path}")
     writer.close()
