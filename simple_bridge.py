@@ -148,7 +148,7 @@ if __name__ == "__main__":
     trainY, testY = load_mnist_dataset(root=args.data_folder, download=args.download_data)
     #set basic config
     batch_size = 128 
-    T = 10
+    T = 0.1
     deterministic = False
 
     device = 'cuda'
