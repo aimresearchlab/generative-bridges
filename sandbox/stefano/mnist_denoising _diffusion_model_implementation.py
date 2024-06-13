@@ -82,7 +82,7 @@ class DiffusionModel:
 
 
 def save_samples(diffusion_model, nb_images, n_batch):
-    samples = diffusion_model.sampling(n_samples=nb_images, use_tqdm=False)
+    samples = diffusion_model.sample_w_reverse_process(n_samples=nb_images, use_tqdm=False)
     plt.figure(figsize=(17, 17))
     for i in range(nb_images):
         plt.subplot(9, 9, 1 + i)

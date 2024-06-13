@@ -5,7 +5,7 @@ import torch.nn as nn
 from typing import List
 from tqdm import tqdm
 from torch.utils.tensorboard import SummaryWriter
-from utils import load_mnist_dataset, flatten_image, unflatten_image, view_image
+from utils import load_mnist_dataset, flatten_image, unflatten_image, view_image, check_torch_cuda
 from unet import get_timestep_embedding, UNet
 
 import matplotlib.pyplot as plt
@@ -106,7 +106,7 @@ def sample_batch(trainY, batch_size, device):
     return torch.nn.functional.interpolate(data, size=(32, 32))
 
 def save_samples(diffusion_model, nb_images, n_batch, path):
-    samples = diffusion_model.sampling(n_samples=nb_images, use_tqdm=False)
+    samples = diffusion_model.sample_w_reverse_process(n_samples=nb_images, use_tqdm=False)
     plt.figure(figsize=(17, 17))
     for i in range(nb_images):
         plt.subplot(9, 9, 1 + i)
@@ -116,19 +116,8 @@ def save_samples(diffusion_model, nb_images, n_batch, path):
     plt.close()
 
 if __name__ == "__main__":
-        # Check if CUDA is available
-    if torch.cuda.is_available():
-        # Get the number of available GPUs
-        num_gpus = torch.cuda.device_count()
-    
-        print(f"Number of available GPUs: {num_gpus}")
-    
-        # Iterate over each GPU and print its name and type
-        for i in range(num_gpus):
-            gpu_name = torch.cuda.get_device_name(i)
-            print(f"GPU {i}: {gpu_name}")
-    else:
-        print("No GPUs available")
+
+    check_torch_cuda()  # check CUDA
 
     parser = argparse.ArgumentParser(description="Set folders input and output")
     parser.add_argument('--data_folder', default='/workspace/aim-bridges-data/mnist', type=str, required=False, help='Path to the data folder')
