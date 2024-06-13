@@ -65,14 +65,14 @@ class DiffusionModel:
 
         return loss.item()
 
-    @torch.no_grad()
+    @torch.no_grad()  # as it is not part of training
     def sample_w_reverse_process(self, n_samples=1, image_channels=1, img_size=(32, 32),
                                  use_tqdm=True):
         """
         Algorithm 2 in Denoising Diffusion Probabilistic Models
-        For sampling from the reverse process and get a new image
-        We start with a pure standard Gaussian noise, and we gradually denoise it using the prediction of our model.
-        In the end, we get x₀, which should be a clean image from the real distribution.
+        For sampling from the reverse process and get a new image (Sample from p_θ(xₜ₋₁|xₜ) to get xₜ₋₁ according to Algo 2)
+        We start with a pure standard Gaussian noise (t=T), and we gradually denoise it using the prediction of our model.
+        In the end (t=0), we get x₀, which should be a clean image from the real distribution.
         """
 
         x = torch.randn((n_samples, image_channels, img_size[0], img_size[1]),
