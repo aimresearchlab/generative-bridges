@@ -146,6 +146,7 @@ if __name__ == "__main__":
     device = 'cuda'
     batch_size = 64
     T = 10
+
     deterministic = False
     checkpoint_steps = (1000 / batch_size) * 64
     num_batches = 40_000

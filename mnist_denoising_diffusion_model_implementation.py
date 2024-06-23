@@ -130,7 +130,7 @@ if __name__ == "__main__":
     trainY, testY = load_mnist_dataset(root=args.data_folder, download=args.download_data)
 
     device = 'cuda'
-    batch_size = 64
+    batch_size = 128
     t_steps = 1000
     deterministic = False
     checkpoint_steps = int((1000 / batch_size) * 64)
