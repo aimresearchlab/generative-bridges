@@ -4,3 +4,6 @@
 [submodule "thirdparty/diffusion"]
 	path = thirdparty/diffusion
 	url = https://github.com/hojonathanho/diffusion.git
+[submodule "thirdparty/improved-diffusion"]
+	path = thirdparty/improved-diffusion
+	url = https://github.com/openai/improved-diffusion.git
