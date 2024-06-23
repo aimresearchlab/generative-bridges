@@ -82,7 +82,7 @@ class DiffusionModel:
 
 
 def save_samples(diffusion_model, nb_images, n_batch):
-    samples = diffusion_model.sampling(n_samples=nb_images, use_tqdm=False)
+    samples = diffusion_model.sample_w_reverse_process(n_samples=nb_images, use_tqdm=False)
     plt.figure(figsize=(17, 17))
     for i in range(nb_images):
         plt.subplot(9, 9, 1 + i)
@@ -104,8 +104,8 @@ if __name__ == "__main__":
     diffusion_model = DiffusionModel(1000, model, device, trainX)
 
     # Create the "Img" folder if it does not exist
-    if not os.path.exists('imgs'):
-        os.makedirs('imgs')
+    if not os.path.exists('../../imgs'):
+        os.makedirs('../../imgs')
 
     # Training
     for n_batch in tqdm(range(40_000)):

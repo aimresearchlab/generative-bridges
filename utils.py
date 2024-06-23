@@ -1,6 +1,9 @@
+import torch
 import torchvision
 from torchvision import datasets, transforms
 import matplotlib.pyplot as plt
+
+
 def load_mnist_dataset(root: str = './data', download=True):
     """
     Function to load the MNIST dataset
@@ -53,3 +56,19 @@ def unflatten_image(vector, shape=(28, 28)):
     :return:
     """
     return vector.view(shape)
+
+
+def check_torch_cuda():
+    # Check if CUDA is available
+    if torch.cuda.is_available():
+        # Get the number of available GPUs
+        num_gpus = torch.cuda.device_count()
+
+        print(f"Number of available GPUs: {num_gpus}")
+
+        # Iterate over each GPU and print its name and type
+        for i in range(num_gpus):
+            gpu_name = torch.cuda.get_device_name(i)
+            print(f"GPU {i}: {gpu_name}")
+    else:
+        print("No GPUs available")
