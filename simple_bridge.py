@@ -5,7 +5,7 @@ import torch.nn as nn
 from typing import List
 from tqdm import tqdm
 from torch.utils.tensorboard import SummaryWriter
-from utils import load_mnist_dataset, flatten_image, unflatten_image, view_image, check_torch_cuda
+from utils import load_mnist_dataset, load_cifar10_dataset, view_image, check_torch_cuda
 from unet import get_timestep_embedding, UNet
 
 import matplotlib.pyplot as plt
@@ -90,22 +90,17 @@ class SimpleBrownianBridgeDiffusion:
             #Z_t = Z
         return xi_t
 
-
-def unflatten_data(vector, shape=(28, 28)):
-    """
-    Function to unflatten an image
-    :param vector: Flattened image tensor
-    :param shape: Target shape
-    :return: Unflattened image tensor
-    """
-    return vector.view(-1, 1, *shape)
-
+# def sample_batch(trainY, batch_size, device):
+#     indices = torch.randperm(len(trainY))[:batch_size]
+#     data = torch.stack([trainY[i] for i in indices]).to(device)
+#     data = unflatten_data(data)  # Reshape to (batch_size, 1, 28, 28)
+#     return torch.nn.functional.interpolate(data, size=(32, 32))
 
 def sample_batch(trainY, batch_size, device):
     indices = torch.randperm(len(trainY))[:batch_size]
     data = torch.stack([trainY[i] for i in indices]).to(device)
-    data = unflatten_data(data)  # Reshape to (batch_size, 1, 28, 28)
-    return torch.nn.functional.interpolate(data, size=(32, 32))
+
+    return data
 
 
 def save_samples(diffusion_model, nb_images, n_batch, path):
@@ -127,6 +122,7 @@ if __name__ == "__main__":
     parser.add_argument('--data_folder', default='./data', type=str, required=False, help='Path to the data folder')
     parser.add_argument('--imgs_folder', default='./imgs/mnist/bridge', type=str, required=False, help='Path to the imgs folder')
     parser.add_argument('--models_folder', default='./aim-bridges-models/bridge', type=str, required=False, help='Path to the models folder')
+    parser.add_argument('--dataset', default='mnist', help='Select dataset, mnist, cifar')
     parser.add_argument('--download_data', action='store_true', help='Download the data')
     parser.add_argument('--verbose', action='store_true', help='Download the data')
 
@@ -139,19 +135,29 @@ if __name__ == "__main__":
         os.makedirs(args.imgs_folder)
     if not os.path.exists(check_point_folder):
         os.makedirs(check_point_folder)
-
-    trainY, testY = load_mnist_dataset(root=args.data_folder, download=args.download_data)
+    if args.dataset == 'mnist':
+        trainY, testY = load_mnist_dataset(root=args.data_folder, download=args.download_data)
+    elif args.dataset == 'cifar':
+         trainY, testY = load_cifar10_dataset(root=args.data_folder, download=args.download_data)
+    else:
+        raise f"unknown dataset: {args.dataset}"
 
     # basic config
     device = 'cuda'
-    batch_size = 64
-    T = 10
+    batch_size = 128
+    T = 0.1
 
     deterministic = False
     checkpoint_steps = (1000 / batch_size) * 64
     num_batches = 40_000
 
-    model = UNet()
+    if args.dataset == 'mnist':
+        model = UNet()
+    elif args.dataset == 'cifar':
+        model = UNet(in_ch=3)
+    else:
+        raise f"unknown dataset: {args.dataset}"
+        
     model = nn.DataParallel(model)
     optimizer = torch.optim.Adam(model.parameters(), lr=2e-5)
     diffusion_model = SimpleBrownianBridgeDiffusion(T, model, device, trainY, deterministic=deterministic)
