@@ -17,6 +17,15 @@ CIFAR_CLASSES = (
     "truck",
 )
 
+def sample_batch(trainY, batch_size, device, interpolate_size=None):
+    indices = torch.randperm(len(trainY))[:batch_size]
+    data = torch.stack([trainY[i] for i in indices]).to(device)
+    if interpolate_size:
+        return torch.nn.functional.interpolate(data, size=(interpolate_size, interpolate_size))
+    else:
+        return data
+
+
 def load_mnist_dataset(root: str = './data', download=True):
     """
     Function to load the MNIST dataset
@@ -27,7 +36,6 @@ def load_mnist_dataset(root: str = './data', download=True):
     transform = transforms.Compose([
         transforms.ToTensor(),  # Convert images to PyTorch tensors
         transforms.Normalize((0.5,), (0.5,)),  # Normalize the pixel values
-        transforms.Lambda(lambda x: x.view(-1))  # Flatten the image
     ])
 
     # Load the MNIST dataset

@@ -5,7 +5,7 @@ import torch.nn as nn
 from typing import List
 from tqdm import tqdm
 from torch.utils.tensorboard import SummaryWriter
-from utils import load_mnist_dataset, load_cifar10_dataset, view_image, check_torch_cuda
+from utils import load_mnist_dataset, load_cifar10_dataset, view_image, check_torch_cuda, sample_batch
 from unet import get_timestep_embedding, UNet
 
 import matplotlib.pyplot as plt
@@ -15,7 +15,7 @@ import argparse
 
 class SimpleBrownianBridgeDiffusion:
 
-    def __init__(self, T: float, model: nn.Module, device: str, trainY: List, deterministic: bool = False):
+    def __init__(self, T: float, model: nn.Module, device: str, trainY: List, deterministic: bool = False, interpolate_size = None):
         self.T = T
         self.function_approximator = model.to(device)
         self.device = device
@@ -23,6 +23,7 @@ class SimpleBrownianBridgeDiffusion:
 
         self._EPS = 0.0000001
         self._deterministic = deterministic
+        self.interpolate_size = interpolate_size
 
     def train(self, batch_size, optimizer):
         """
@@ -30,7 +31,7 @@ class SimpleBrownianBridgeDiffusion:
         """
 
         # sample target images y
-        y = sample_batch(self.trainY, batch_size, self.device)
+        y = sample_batch(self.trainY, batch_size, self.device, interpolate_size=self.interpolate_size)
         # sample random times from [0,T)
         t = torch.rand(batch_size, device=self.device, dtype=torch.float32) * self.T
         # Unsqueeze t to align dimensions
@@ -90,19 +91,6 @@ class SimpleBrownianBridgeDiffusion:
             #Z_t = Z
         return xi_t
 
-# def sample_batch(trainY, batch_size, device):
-#     indices = torch.randperm(len(trainY))[:batch_size]
-#     data = torch.stack([trainY[i] for i in indices]).to(device)
-#     data = unflatten_data(data)  # Reshape to (batch_size, 1, 28, 28)
-#     return torch.nn.functional.interpolate(data, size=(32, 32))
-
-def sample_batch(trainY, batch_size, device):
-    indices = torch.randperm(len(trainY))[:batch_size]
-    data = torch.stack([trainY[i] for i in indices]).to(device)
-
-    return data
-
-
 def save_samples(diffusion_model, nb_images, n_batch, path):
     samples = diffusion_model.sample_w_reverse_process(n_samples=nb_images, use_tqdm=False)
     plt.figure(figsize=(17, 17))
@@ -153,15 +141,16 @@ if __name__ == "__main__":
 
     if args.dataset == 'mnist':
         model = UNet()
+        diffusion_model = SimpleBrownianBridgeDiffusion(T, model, device, trainY, deterministic=deterministic, interpolate_size=32)
     elif args.dataset == 'cifar':
         model = UNet(in_ch=3)
+        diffusion_model = SimpleBrownianBridgeDiffusion(T, model, device, trainY, deterministic=deterministic)
     else:
         raise f"unknown dataset: {args.dataset}"
         
     model = nn.DataParallel(model)
     optimizer = torch.optim.Adam(model.parameters(), lr=2e-5)
-    diffusion_model = SimpleBrownianBridgeDiffusion(T, model, device, trainY, deterministic=deterministic)
-
+ 
     det_name = 'det' if deterministic else 'stoch'
     model_name = f'batch_{batch_size}_T_{T}_{det_name}'
     print(f'batch_size: {batch_size}; T: {T}; deterministic: {deterministic}')
