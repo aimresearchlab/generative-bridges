@@ -1,16 +1,16 @@
+import argparse
 import os
-import torch
-import torch.distributions as dist
-import torch.nn as nn
 from typing import List
-from tqdm import tqdm
-from torch.utils.tensorboard import SummaryWriter
-from utils import load_mnist_dataset, load_cifar10_dataset, view_image, check_torch_cuda, sample_batch
-from unet import get_timestep_embedding, UNet
 
 import matplotlib.pyplot as plt
-import numpy as np
-import argparse
+import torch
+import torch.nn as nn
+from torch.utils.tensorboard import SummaryWriter
+from tqdm import tqdm
+
+from unet import UNet
+from unet_openai import create_openAI_Unet
+from utils import load_mnist_dataset, load_cifar10_dataset, check_torch_cuda, sample_batch
 
 
 class SimpleBrownianBridgeDiffusion:
@@ -110,7 +110,8 @@ if __name__ == "__main__":
     parser.add_argument('--data_folder', default='./data', type=str, required=False, help='Path to the data folder')
     parser.add_argument('--imgs_folder', default='./imgs/mnist/bridge', type=str, required=False, help='Path to the imgs folder')
     parser.add_argument('--models_folder', default='./aim-bridges-models/bridge', type=str, required=False, help='Path to the models folder')
-    parser.add_argument('--dataset', default='mnist', help='Select dataset, mnist, cifar')
+    parser.add_argument('--dataset', default='cifar', help='Select dataset, mnist, cifar')
+    parser.add_argument('--unet', default='openAI', help='Select UNet: berkan or openAI')
     parser.add_argument('--download_data', action='store_true', help='Download the data')
     parser.add_argument('--verbose', action='store_true', help='Download the data')
 
@@ -132,25 +133,32 @@ if __name__ == "__main__":
 
     # basic config
     device = 'cuda'
-    batch_size = 128
+    batch_size = 64
     T = 0.1
+    learning_rate = 1e-4
 
     deterministic = False
     checkpoint_steps = (1000 / batch_size) * 64
     num_batches = 40_000
 
     if args.dataset == 'mnist':
-        model = UNet()
+        if args.unet == 'berkan':
+            model = UNet()
+        elif args.unet == 'openAI':
+            model = create_openAI_Unet()
         diffusion_model = SimpleBrownianBridgeDiffusion(T, model, device, trainY, deterministic=deterministic, interpolate_size=32)
     elif args.dataset == 'cifar':
-        model = UNet(in_ch=3)
+        if args.unet == 'berkan':
+            model = UNet(in_ch=3)
+        elif args.unet == 'openAI':
+            model = create_openAI_Unet()
         diffusion_model = SimpleBrownianBridgeDiffusion(T, model, device, trainY, deterministic=deterministic)
     else:
         raise f"unknown dataset: {args.dataset}"
-        
+
     model = nn.DataParallel(model)
-    optimizer = torch.optim.Adam(model.parameters(), lr=2e-5)
- 
+    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
+
     det_name = 'det' if deterministic else 'stoch'
     model_name = f'batch_{batch_size}_T_{T}_{det_name}'
     print(f'batch_size: {batch_size}; T: {T}; deterministic: {deterministic}')

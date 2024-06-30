@@ -1,10 +1,58 @@
 from abc import abstractmethod
-import math
 import numpy as np
-import torch as th
-import torch.nn as nn
 import torch.nn.functional as F
 from unet_open_ai_utils import *
+
+
+def create_openAI_Unet():
+    """
+    From: create_model() in https://github.com/openai/improved-diffusion/blob/main/improved_diffusion/script_util.py
+    And:  model_and_diffusion_defaults() in https://github.com/openai/improved-diffusion/blob/main/improved_diffusion/script_util.py
+    And: defaults on: https://github.com/openai/improved-diffusion/tree/main?tab=readme-ov-file#training
+
+    Returns:
+
+    """
+    num_heads = 4,
+    num_heads_upsample = -1
+    attention_resolutions = "16,8"
+    dropout = 0.3 # as for "Unconditional CIFAR-10" in https://github.com/openai/improved-diffusion/tree/main#models-and-hyperparameters
+    learn_sigma = False
+    use_checkpoint = False
+    use_scale_shift_norm = True
+    image_size = 32
+    num_channels = 128
+    num_res_blocks = 3
+    class_cond = False
+    NUM_CLASSES = 10  # (For Cifar 10) On line 8, https://github.com/openai/improved-diffusion/blob/main/improved_diffusion/script_util.py
+
+    if image_size == 256:
+        channel_mult = (1, 1, 2, 2, 4, 4)
+    elif image_size == 64:
+        channel_mult = (1, 2, 3, 4)
+    elif image_size == 32:
+        channel_mult = (1, 2, 2, 2)
+    else:
+        raise ValueError(f"unsupported image size: {image_size}")
+
+    attention_ds = []
+    for res in attention_resolutions.split(","):
+        attention_ds.append(image_size // int(res))
+
+    return UNetModel(
+        in_channels=3,
+        model_channels=num_channels,
+        out_channels=(3 if not learn_sigma else 6),
+        num_res_blocks=num_res_blocks,
+        attention_resolutions=tuple(attention_ds),
+        dropout=dropout,
+        channel_mult=channel_mult,
+        num_classes=(NUM_CLASSES if class_cond else None),
+        use_checkpoint=use_checkpoint,
+        num_heads=num_heads,
+        num_heads_upsample=num_heads_upsample,
+        use_scale_shift_norm=use_scale_shift_norm,
+    )
 
 class TimestepBlock(nn.Module):
     """
