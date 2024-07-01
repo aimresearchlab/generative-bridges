@@ -1,8 +1,55 @@
+import argparse
 from abc import abstractmethod
 import numpy as np
 import torch.nn.functional as F
 from unet_open_ai_utils import *
 
+def model_and_diffusion_defaults():
+    """
+    Defaults for image training.
+    """
+    return dict(
+        image_size=32,
+        num_channels=128,
+        num_res_blocks=2,
+        num_heads=4,
+        num_heads_upsample=-1,
+        attention_resolutions="16,8",
+        dropout=0.0,
+        learn_sigma=False,
+        sigma_small=False,
+        class_cond=False,
+        diffusion_steps=1000,
+        noise_schedule="linear",
+        timestep_respacing="",
+        use_kl=False,
+        predict_xstart=False,
+        rescale_timesteps=True,
+        rescale_learned_sigmas=True,
+        use_checkpoint=False,
+        use_scale_shift_norm=True,
+    )
+
+def create_argparser():
+    defaults = dict(
+        data_dir="./datasets/cifar_train",
+        schedule_sampler="uniform",
+        lr=1e-4,
+        weight_decay=0.0,
+        lr_anneal_steps=0,
+        batch_size=1,
+        microbatch=-1,  # -1 disables microbatches
+        ema_rate="0.9999",  # comma-separated list of EMA values
+        log_interval=10,
+        save_interval=10000,
+        resume_checkpoint="",
+        use_fp16=False,
+        fp16_scale_growth=1e-3,
+    )
+    defaults.update(model_and_diffusion_defaults())
+    parser = argparse.ArgumentParser()
+    add_dict_to_argparser(parser, defaults)
+    return parser
 
 def create_openAI_Unet():
     """
@@ -13,19 +60,63 @@ def create_openAI_Unet():
     Returns:
 
     """
-    num_heads = 4,
-    num_heads_upsample = -1
-    attention_resolutions = "16,8"
-    dropout = 0.3 # as for "Unconditional CIFAR-10" in https://github.com/openai/improved-diffusion/tree/main#models-and-hyperparameters
-    learn_sigma = False
-    use_checkpoint = False
-    use_scale_shift_norm = True
-    image_size = 32
-    num_channels = 128
-    num_res_blocks = 3
-    class_cond = False
-    NUM_CLASSES = 10  # (For Cifar 10) On line 8, https://github.com/openai/improved-diffusion/blob/main/improved_diffusion/script_util.py
+    args = create_argparser().parse_args()
+    model = create_model_and_diffusion(
+        **args_to_dict(args, model_and_diffusion_defaults().keys())
+    )
 
+    return model
+
+
+def create_model_and_diffusion(
+        image_size,
+        class_cond,
+        learn_sigma,
+        sigma_small,
+        num_channels,
+        num_res_blocks,
+        num_heads,
+        num_heads_upsample,
+        attention_resolutions,
+        dropout,
+        diffusion_steps,
+        noise_schedule,
+        timestep_respacing,
+        use_kl,
+        predict_xstart,
+        rescale_timesteps,
+        rescale_learned_sigmas,
+        use_checkpoint,
+        use_scale_shift_norm,
+):
+    model = create_model(
+        image_size,
+        num_channels,
+        num_res_blocks,
+        learn_sigma=learn_sigma,
+        class_cond=class_cond,
+        use_checkpoint=use_checkpoint,
+        attention_resolutions=attention_resolutions,
+        num_heads=num_heads,
+        num_heads_upsample=num_heads_upsample,
+        use_scale_shift_norm=use_scale_shift_norm,
+        dropout=dropout,
+    )
+    return model
+
+def create_model(
+    image_size,
+    num_channels,
+    num_res_blocks,
+    learn_sigma,
+    class_cond,
+    use_checkpoint,
+    attention_resolutions,
+    num_heads,
+    num_heads_upsample,
+    use_scale_shift_norm,
+    dropout,
+):
     if image_size == 256:
         channel_mult = (1, 1, 2, 2, 4, 4)
     elif image_size == 64:
@@ -47,12 +138,13 @@ def create_openAI_Unet():
         attention_resolutions=tuple(attention_ds),
         dropout=dropout,
         channel_mult=channel_mult,
-        num_classes=(NUM_CLASSES if class_cond else None),
+        num_classes=(10 if class_cond else None),
         use_checkpoint=use_checkpoint,
         num_heads=num_heads,
         num_heads_upsample=num_heads_upsample,
         use_scale_shift_norm=use_scale_shift_norm,
     )
+
 
 class TimestepBlock(nn.Module):
     """

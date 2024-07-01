@@ -1,8 +1,35 @@
+import argparse
+
 from torch._utils import _flatten_dense_tensors, _unflatten_dense_tensors
 import math
 import torch as th
 import torch.nn as nn
 
+
+def str2bool(v):
+    """
+    https://stackoverflow.com/questions/15008758/parsing-boolean-values-with-argparse
+    """
+    if isinstance(v, bool):
+        return v
+    if v.lower() in ("yes", "true", "t", "y", "1"):
+        return True
+    elif v.lower() in ("no", "false", "f", "n", "0"):
+        return False
+    else:
+        raise argparse.ArgumentTypeError("boolean value expected")
+
+def args_to_dict(args, keys):
+    return {k: getattr(args, k) for k in keys}
+
+def add_dict_to_argparser(parser, default_dict):
+    for k, v in default_dict.items():
+        v_type = type(v)
+        if v is None:
+            v_type = str
+        elif isinstance(v, bool):
+            v_type = str2bool
+        parser.add_argument(f"--{k}", default=v, type=v_type)
 
 """
 Helpers to train with 16-bit precision. (fp16_util.py on https://github.com/openai/improved-diffusion/tree/main/improved_diffusion)
