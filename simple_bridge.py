@@ -116,6 +116,7 @@ if __name__ == "__main__":
     parser.add_argument('--verbose', action='store_true', help='Download the data')
 
     args = parser.parse_args()
+    print(args)
     check_point_folder = f'{args.models_folder}/checkpoints'
     # Create the "data" folder if it does not exist
     if not os.path.exists(args.data_folder):
@@ -133,19 +134,21 @@ if __name__ == "__main__":
 
     # basic config
     device = 'cuda'
-    batch_size = 64
-    T = 0.1
+    batch_size = 128
+    T = 0.005
     learning_rate = 1e-4
 
     deterministic = False
-    checkpoint_steps = (1000 / batch_size) * 64
-    num_batches = 40_000
+    checkpoint_steps = (10000 / batch_size) * 64
+    num_batches = 50000
 
     if args.dataset == 'mnist':
         if args.unet == 'berkan':
             model = UNet()
         elif args.unet == 'openAI':
+            print('trying mnist openAI')
             model = create_openAI_Unet()
+        print('creating diffusion model')
         diffusion_model = SimpleBrownianBridgeDiffusion(T, model, device, trainY, deterministic=deterministic, interpolate_size=32)
     elif args.dataset == 'cifar':
         if args.unet == 'berkan':
@@ -155,12 +158,12 @@ if __name__ == "__main__":
         diffusion_model = SimpleBrownianBridgeDiffusion(T, model, device, trainY, deterministic=deterministic)
     else:
         raise f"unknown dataset: {args.dataset}"
-
+    print('daat parallel')
     model = nn.DataParallel(model)
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
     det_name = 'det' if deterministic else 'stoch'
-    model_name = f'batch_{batch_size}_T_{T}_{det_name}'
+    model_name = f'batch_{batch_size}_T_{T}_{det_name}_{args.unet}_50M'
     print(f'batch_size: {batch_size}; T: {T}; deterministic: {deterministic}')
 
     # Training
@@ -183,3 +186,5 @@ if __name__ == "__main__":
     torch.save(model.state_dict(), final_model_path)
     print(f"Final model saved to {final_model_path}")
     writer.close()  # Close the writer when done
+
+    #python simple_bridge.py --data_folder /workspace/aim-bridges-data/cifar10/ --imgs_folder /workspace/aim-bridges-img/ --models_folder /workspace/aim-bridges-models/bridge/ --dataset cifar --unet openAI

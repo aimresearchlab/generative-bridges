@@ -11,7 +11,7 @@ def model_and_diffusion_defaults():
     return dict(
         image_size=32,
         num_channels=128,
-        num_res_blocks=2,
+        num_res_blocks=3,
         num_heads=4,
         num_heads_upsample=-1,
         attention_resolutions="16,8",
@@ -32,7 +32,7 @@ def model_and_diffusion_defaults():
 
 def create_argparser():
     defaults = dict(
-        data_dir="./datasets/cifar_train",
+        #data_dir="./datasets/cifar_train",
         schedule_sampler="uniform",
         lr=1e-4,
         weight_decay=0.0,
@@ -60,9 +60,9 @@ def create_openAI_Unet():
     Returns:
 
     """
-    args = create_argparser().parse_args()
+    #args = create_argparser().parse_args()
     model = create_model_and_diffusion(
-        **args_to_dict(args, model_and_diffusion_defaults().keys())
+        **model_and_diffusion_defaults()
     )
 
     return model
