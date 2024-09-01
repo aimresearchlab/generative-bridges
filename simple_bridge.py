@@ -112,6 +112,8 @@ if __name__ == "__main__":
     parser.add_argument('--models_folder', default='./aim-bridges-models/bridge', type=str, required=False, help='Path to the models folder')
     parser.add_argument('--dataset', default='cifar', help='Select dataset, mnist, cifar')
     parser.add_argument('--unet', default='openAI', help='Select UNet: berkan or openAI')
+    parser.add_argument("--T", type=float, default=0.1, help="Diffusion time")
+    parser.add_argument("--batch_size", type=float, default=128, help="Batch Size")
     parser.add_argument('--download_data', action='store_true', help='Download the data')
     parser.add_argument('--verbose', action='store_true', help='Download the data')
 
@@ -134,8 +136,8 @@ if __name__ == "__main__":
 
     # basic config
     device = 'cuda'
-    batch_size = 128
-    T = 0.005
+    batch_size = args.batch_size
+    T = args.T
     learning_rate = 1e-4
 
     deterministic = False
