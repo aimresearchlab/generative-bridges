@@ -4,13 +4,14 @@ import numpy as np
 import torch.nn.functional as F
 from unet_open_ai_utils import *
 
-def model_and_diffusion_defaults():
+def model_and_diffusion_defaults_cifar10():
     """
     Defaults for image training.
     """
-    return dict(
+    result =  dict(
         image_size=32,
         num_channels=128,
+        in_channels=3,
         num_res_blocks=3,
         num_heads=4,
         num_heads_upsample=-1,
@@ -30,6 +31,42 @@ def model_and_diffusion_defaults():
         use_scale_shift_norm=True,
     )
 
+    result['out_channels'] = 6 if result['learn_sigma'] else 3
+
+    return result
+
+
+def model_and_diffusion_defaults_mnist():
+    """
+    Defaults for image training.
+    """
+    result = dict(
+        image_size=28,  # Changed from 32 to 28 for MNIST
+        num_channels=64,  # Reduced from 128 to 64 as MNIST is simpler
+        in_channels = 1,
+        num_res_blocks=2,  # Reduced from 3 to 2
+        num_heads=4,
+        num_heads_upsample=-1,
+        attention_resolutions="14,7",  # Changed from "16,8" to "14,7"
+        dropout=0.0,
+        learn_sigma=False,
+        sigma_small=False,
+        class_cond=False,
+        diffusion_steps=1000,
+        noise_schedule="linear",
+        timestep_respacing="",
+        use_kl=False,
+        predict_xstart=False,
+        rescale_timesteps=True,
+        rescale_learned_sigmas=True,
+        use_checkpoint=False,
+        use_scale_shift_norm=True,
+    )
+
+    result['out_channels'] = 2 if result['learn_sigma'] else 1
+
+    return result
+
 def create_argparser():
     defaults = dict(
         #data_dir="./datasets/cifar_train",
@@ -46,12 +83,12 @@ def create_argparser():
         use_fp16=False,
         fp16_scale_growth=1e-3,
     )
-    defaults.update(model_and_diffusion_defaults())
+    defaults.update(model_and_diffusion_defaults_cifar10())
     parser = argparse.ArgumentParser()
     add_dict_to_argparser(parser, defaults)
     return parser
 
-def create_openAI_Unet():
+def create_openAI_Unet(model_config='mnist'):
     """
     From: create_model() in https://github.com/openai/improved-diffusion/blob/main/improved_diffusion/script_util.py
     And:  model_and_diffusion_defaults() in https://github.com/openai/improved-diffusion/blob/main/improved_diffusion/script_util.py
@@ -60,10 +97,16 @@ def create_openAI_Unet():
     Returns:
 
     """
-    #args = create_argparser().parse_args()
-    model = create_model_and_diffusion(
-        **model_and_diffusion_defaults()
-    )
+    if model_config == 'cifar':
+        model = create_model_and_diffusion(
+            **model_and_diffusion_defaults_cifar10()
+        )
+    elif model_config == 'mnist':
+        model = create_model_and_diffusion(
+            **model_and_diffusion_defaults_mnist()
+        )
+    else:
+        raise NotImplementedError(f'{model_config} not supported.')
 
     return model
 
@@ -74,6 +117,8 @@ def create_model_and_diffusion(
         learn_sigma,
         sigma_small,
         num_channels,
+        in_channels,
+        out_channels,
         num_res_blocks,
         num_heads,
         num_heads_upsample,
@@ -92,6 +137,8 @@ def create_model_and_diffusion(
     model = create_model(
         image_size,
         num_channels,
+        in_channels,
+        out_channels,
         num_res_blocks,
         learn_sigma=learn_sigma,
         class_cond=class_cond,
@@ -107,6 +154,8 @@ def create_model_and_diffusion(
 def create_model(
     image_size,
     num_channels,
+    in_channels,
+    out_channels,
     num_res_blocks,
     learn_sigma,
     class_cond,
@@ -123,6 +172,8 @@ def create_model(
         channel_mult = (1, 2, 3, 4)
     elif image_size == 32:
         channel_mult = (1, 2, 2, 2)
+    elif image_size == 28:  # MNIST
+        channel_mult = (1, 2, 2)  # Adjusted for 28x28 images
     else:
         raise ValueError(f"unsupported image size: {image_size}")
 
@@ -131,9 +182,9 @@ def create_model(
         attention_ds.append(image_size // int(res))
 
     return UNetModel(
-        in_channels=3,
+        in_channels=in_channels,
         model_channels=num_channels,
-        out_channels=(3 if not learn_sigma else 6),
+        out_channels= out_channels,
         num_res_blocks=num_res_blocks,
         attention_resolutions=tuple(attention_ds),
         dropout=dropout,

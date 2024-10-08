@@ -6,6 +6,7 @@ from typing import List
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 from unet import UNet
+from unet_openai import create_openAI_Unet
 from utils import load_mnist_dataset, check_torch_cuda
 import argparse
 from torch.utils.tensorboard import SummaryWriter
@@ -111,9 +112,11 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Set folders input and output")
     parser.add_argument('--data_folder', default='./data', type=str, required=False, help='Path to the data folder')
+    parser.add_argument('--unet', default='openAI', help='Select UNet: berkan or openAI')
     parser.add_argument('--imgs_folder', default='./imgs/mnist/denoise', type=str, required=False, help='Path to the imgs folder')
     parser.add_argument('--models_folder', default='./aim-bridges-models/denoise/', type=str, required=False, help='Path to the models folder')
     parser.add_argument('--download_data', action='store_true', help='Download the data')
+    parser.add_argument("--batch_size", type=float, default=128, help="Batch Size")
     parser.add_argument('--verbose', action='store_true')
     parser.add_argument('--save_images', action='store_false', help='Save images')
 
@@ -130,14 +133,19 @@ if __name__ == "__main__":
     trainY, testY = load_mnist_dataset(root=args.data_folder, download=args.download_data)
 
     device = 'cuda'
-    batch_size = 128
+    batch_size = args.batch_size
     t_steps = 1000
     deterministic = False
     checkpoint_steps = int((1000 / batch_size) * 64)
     num_batches = 40_000
 
-    model = UNet()
-    model = nn.DataParallel(model)
+    if args.unet == 'berkan':
+        model = UNet()
+        model = nn.DataParallel(model)
+    elif args.unet == 'openAI':
+        print('trying mnist openAI')
+        model = create_openAI_Unet(model_config='mnist')
+
     optimizer = torch.optim.Adam(model.parameters(), lr=2e-5)
     diffusion_model = DiffusionModel(t_steps, model, device, trainY)
 

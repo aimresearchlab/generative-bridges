@@ -9,7 +9,7 @@ from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 
 from unet import UNet
-from unet_openai import create_openAI_Unet
+from unet_openai import create_openAI_Unet, model_and_diffusion_defaults_cifar10
 from utils import load_mnist_dataset, load_cifar10_dataset, check_torch_cuda, sample_batch
 
 
@@ -110,10 +110,10 @@ if __name__ == "__main__":
     parser.add_argument('--data_folder', default='./data', type=str, required=False, help='Path to the data folder')
     parser.add_argument('--imgs_folder', default='./imgs/mnist/bridge', type=str, required=False, help='Path to the imgs folder')
     parser.add_argument('--models_folder', default='./aim-bridges-models/bridge', type=str, required=False, help='Path to the models folder')
-    parser.add_argument('--dataset', default='cifar', help='Select dataset, mnist, cifar')
+    parser.add_argument('--dataset', default='mnist', help='Select dataset, mnist, cifar')
     parser.add_argument('--unet', default='openAI', help='Select UNet: berkan or openAI')
     parser.add_argument("--T", type=float, default=0.1, help="Diffusion time")
-    parser.add_argument("--batch_size", type=float, default=128, help="Batch Size")
+    parser.add_argument("--batch_size", type=float, default=32, help="Batch Size")
     parser.add_argument('--download_data', action='store_true', help='Download the data')
     parser.add_argument('--verbose', action='store_true', help='Download the data')
 
@@ -146,17 +146,20 @@ if __name__ == "__main__":
 
     if args.dataset == 'mnist':
         if args.unet == 'berkan':
+            print('running mnist simple unet')
             model = UNet()
         elif args.unet == 'openAI':
-            print('trying mnist openAI')
-            model = create_openAI_Unet()
+            print('running mnist openAI unet')
+            model = create_openAI_Unet(model_config='mnist')
         print('creating diffusion model')
         diffusion_model = SimpleBrownianBridgeDiffusion(T, model, device, trainY, deterministic=deterministic, interpolate_size=32)
     elif args.dataset == 'cifar':
         if args.unet == 'berkan':
+            print('running cifar simple unet')
             model = UNet(in_ch=3)
         elif args.unet == 'openAI':
-            model = create_openAI_Unet()
+            print('running cifar OpenAI unet')
+            model = create_openAI_Unet(model_config='cifar')
         diffusion_model = SimpleBrownianBridgeDiffusion(T, model, device, trainY, deterministic=deterministic)
     else:
         raise f"unknown dataset: {args.dataset}"
