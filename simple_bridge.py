@@ -1,5 +1,6 @@
 import argparse
 import os
+import numpy as np
 from typing import List
 
 import matplotlib.pyplot as plt
@@ -48,12 +49,15 @@ class SimpleBrownianBridgeDiffusion:
         # The input to function_approximator must be 4D: (batch_size, channels, height, width)
         # t is a list of times [batch_size] (hence squeeze)
         img_predicted = self.function_approximator(xi, t.squeeze())
-        loss = nn.functional.mse_loss(y, img_predicted)
+        mse = nn.functional.mse_loss(y, img_predicted)
+        decoder_nll = -discretized_gaussian_log_likelihood(
+            x_start, means=out["mean"], log_scales=0.5 * out["log_variance"]
+        )
         optimizer.zero_grad()
-        loss.backward()
+        mse.backward()
         optimizer.step()
 
-        return loss.item()
+        return mse.item()
 
     @torch.no_grad()
     def sampling(self, n_samples=1, image_channels=1, img_size=(32, 32), n_steps=100,
@@ -101,6 +105,137 @@ def save_samples(diffusion_model, nb_images, n_batch, path):
     plt.savefig(f'{path}/samples_epoch_{n_batch}.png')
     plt.close()
 
+def approx_standard_normal_cdf(x):
+    """
+    A fast approximation of the cumulative distribution function of the
+    standard normal.
+    """
+    return 0.5 * (1.0 + torch.tanh(np.sqrt(2.0 / np.pi) * (x + 0.044715 * torch.pow(x, 3))))
+
+def discretized_gaussian_log_likelihood(x, *, means, log_scales):
+    """
+    Compute the log-likelihood of a Gaussian distribution discretizing to a
+    given image.
+
+    :param x: the target images. It is assumed that this was uint8 values,
+              rescaled to the range [-1, 1].
+    :param means: the Gaussian mean Tensor.
+    :param log_scales: the Gaussian log stddev Tensor.
+    :return: a tensor like x of log probabilities (in nats).
+    """
+    assert x.shape == means.shape == log_scales.shape
+    centered_x = x - means
+    inv_stdv = torch.exp(-log_scales)
+    plus_in = inv_stdv * (centered_x + 1.0 / 255.0)
+    cdf_plus = approx_standard_normal_cdf(plus_in)
+    min_in = inv_stdv * (centered_x - 1.0 / 255.0)
+    cdf_min = approx_standard_normal_cdf(min_in)
+    log_cdf_plus = torch.log(cdf_plus.clamp(min=1e-12))
+    log_one_minus_cdf_min = torch.log((1.0 - cdf_min).clamp(min=1e-12))
+    cdf_delta = cdf_plus - cdf_min
+    log_probs = torch.where(
+        x < -0.999,
+        log_cdf_plus,
+        torch.where(x > 0.999, log_one_minus_cdf_min, torch.log(cdf_delta.clamp(min=1e-12))),
+    )
+    assert log_probs.shape == x.shape
+    return log_probs
+
+def p_mean_variance(
+    self, model, x, t, clip_denoised=True, denoised_fn=None, model_kwargs=None
+):
+    """
+    Apply the model to get p(x_{t-1} | x_t), as well as a prediction of
+    the initial x, x_0.
+
+    :param model: the model, which takes a signal and a batch of timesteps
+                  as input.
+    :param x: the [N x C x ...] tensor at time t.
+    :param t: a 1-D Tensor of timesteps.
+    :param clip_denoised: if True, clip the denoised signal into [-1, 1].
+    :param denoised_fn: if not None, a function which applies to the
+        x_start prediction before it is used to sample. Applies before
+        clip_denoised.
+    :param model_kwargs: if not None, a dict of extra keyword arguments to
+        pass to the model. This can be used for conditioning.
+    :return: a dict with the following keys:
+             - 'mean': the model mean output.
+             - 'variance': the model variance output.
+             - 'log_variance': the log of 'variance'.
+             - 'pred_xstart': the prediction for x_0.
+    """
+    if model_kwargs is None:
+        model_kwargs = {}
+
+    B, C = x.shape[:2]
+    assert t.shape == (B,)
+    model_output = model(x, self._scale_timesteps(t), **model_kwargs)
+
+    if self.model_var_type in [ModelVarType.LEARNED, ModelVarType.LEARNED_RANGE]:
+        assert model_output.shape == (B, C * 2, *x.shape[2:])
+        model_output, model_var_values = th.split(model_output, C, dim=1)
+        if self.model_var_type == ModelVarType.LEARNED:
+            model_log_variance = model_var_values
+            model_variance = th.exp(model_log_variance)
+        else:
+            min_log = _extract_into_tensor(
+                self.posterior_log_variance_clipped, t, x.shape
+            )
+            max_log = _extract_into_tensor(np.log(self.betas), t, x.shape)
+            # The model_var_values is [-1, 1] for [min_var, max_var].
+            frac = (model_var_values + 1) / 2
+            model_log_variance = frac * max_log + (1 - frac) * min_log
+            model_variance = th.exp(model_log_variance)
+    else:
+        model_variance, model_log_variance = {
+            # for fixedlarge, we set the initial (log-)variance like so
+            # to get a better decoder log likelihood.
+            ModelVarType.FIXED_LARGE: (
+                np.append(self.posterior_variance[1], self.betas[1:]),
+                np.log(np.append(self.posterior_variance[1], self.betas[1:])),
+            ),
+            ModelVarType.FIXED_SMALL: (
+                self.posterior_variance,
+                self.posterior_log_variance_clipped,
+            ),
+        }[self.model_var_type]
+        model_variance = _extract_into_tensor(model_variance, t, x.shape)
+        model_log_variance = _extract_into_tensor(model_log_variance, t, x.shape)
+
+    def process_xstart(x):
+        if denoised_fn is not None:
+            x = denoised_fn(x)
+        if clip_denoised:
+            return x.clamp(-1, 1)
+        return x
+
+    if self.model_mean_type == ModelMeanType.PREVIOUS_X:
+        pred_xstart = process_xstart(
+            self._predict_xstart_from_xprev(x_t=x, t=t, xprev=model_output)
+        )
+        model_mean = model_output
+    elif self.model_mean_type in [ModelMeanType.START_X, ModelMeanType.EPSILON]:
+        if self.model_mean_type == ModelMeanType.START_X:
+            pred_xstart = process_xstart(model_output)
+        else:
+            pred_xstart = process_xstart(
+                self._predict_xstart_from_eps(x_t=x, t=t, eps=model_output)
+            )
+        model_mean, _, _ = self.q_posterior_mean_variance(
+            x_start=pred_xstart, x_t=x, t=t
+        )
+    else:
+        raise NotImplementedError(self.model_mean_type)
+
+    assert (
+        model_mean.shape == model_log_variance.shape == pred_xstart.shape == x.shape
+    )
+    return {
+        "mean": model_mean,
+        "variance": model_variance,
+        "log_variance": model_log_variance,
+        "pred_xstart": pred_xstart,
+    }
 
 if __name__ == "__main__":
 
