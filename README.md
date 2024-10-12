@@ -26,6 +26,9 @@ Open another shell and kick of the model calibration
 python simple_bridge.py --data_folder /workspace/aim-bridges-data/mnist/ --imgs_folder /workspace/aim-bridges-img/ --models_folder /workspace/aim-bridges-models/bridge/ --dataset mnist --unet openAI --batch_size 128 --T 0.1
  ```
  model checkpoints are in the folder
+ ```
+ aim-bridges-models/bridge/checkpoints
+ ```
   ## Sample imagsges from checkpoint
   ```
   python sample_bridge.py --model /workspace/aim-bridges-models/model_path --imgs_folder /workspace/aim-bridges-img/ --T 0.1 --sigma 0.1 --num_samples 1000

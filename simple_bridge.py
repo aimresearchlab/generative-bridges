@@ -113,7 +113,7 @@ if __name__ == "__main__":
     parser.add_argument('--dataset', default='mnist', help='Select dataset, mnist, cifar')
     parser.add_argument('--unet', default='openAI', help='Select UNet: berkan or openAI')
     parser.add_argument("--T", type=float, default=0.1, help="Diffusion time")
-    parser.add_argument("--batch_size", type=float, default=32, help="Batch Size")
+    parser.add_argument("--batch_size", type=int, default=32, help="Batch Size")
     parser.add_argument('--download_data', action='store_true', help='Download the data')
     parser.add_argument('--verbose', action='store_true', help='Download the data')
 
