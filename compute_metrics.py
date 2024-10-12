@@ -11,9 +11,11 @@ def sample_batch(trainY, batch_size, device):
     data = torch.stack([trainY[i] for i in indices]).to(device)
     return data
 
-def process_image(image):
+def process_image(image, mono_channel=False):
     image = (image - image.min()) / (image.max() - image.min())  # Normalize to [0, 1]
     image = (image * 255).clamp(0, 255).byte()  # Scale to [0, 255] and convert to uint8
+    if mono_channel:
+        image = image.repeat(3, 1, 1)
     return image
 
 def trivial_process_npz_image(image):
@@ -30,6 +32,7 @@ def calculate_fid(model_samples_path, train_dataset_path, max_images, dataset):
         trainY, _ = load_cifar10_dataset(root=train_dataset_path, download=True)
     elif dataset.lower() == 'mnist':
         trainY, _ = load_mnist_dataset(root=train_dataset_path, download=True)
+        mono_channel = True
     else:
         raise ValueError("Invalid dataset. Choose either 'cifar10' or 'mnist'.")
 
@@ -40,10 +43,10 @@ def calculate_fid(model_samples_path, train_dataset_path, max_images, dataset):
 
     # Process model samples
     npz_images_processed = torch.stack([trivial_process_npz_image(image) for image in bridge_images]).to('cpu')
-    npz_images_processed_int = torch.stack([process_image(samp) for samp in npz_images_processed])
+    npz_images_processed_int = torch.stack([process_image(samp, mono_channel) for samp in npz_images_processed])
 
     # Process train samples
-    train_Y_int = torch.stack([process_image(samp) for samp in trainY])
+    train_Y_int = torch.stack([process_image(samp, mono_channel) for samp in trainY])
 
     # Initialize FID computation
     fid = FrechetInceptionDistance().to('cpu')

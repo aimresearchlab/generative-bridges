@@ -38,6 +38,6 @@ python simple_bridge.py --data_folder /workspace/aim-bridges-data/mnist/ --imgs_
    ## Compute FID
 
    ```
-   python compute_metrics.py
+ python compute_metrics.py --model_samples_path /workspace/aim-bridges-img/samples.npz --train_dataset_path /workspace/aim-bridges-data/mnist --dataset mnist --max_images 10
    ```
 
