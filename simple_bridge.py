@@ -163,7 +163,7 @@ if __name__ == "__main__":
         diffusion_model = SimpleBrownianBridgeDiffusion(T, model, device, trainY, deterministic=deterministic)
     else:
         raise f"unknown dataset: {args.dataset}"
-    print('daat parallel')
+    print('data parallel')
     model = nn.DataParallel(model)
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
