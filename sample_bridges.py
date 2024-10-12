@@ -50,6 +50,7 @@ def main(args):
     # Create model
     if args.dataset == 'mnist':
         image_channels=1
+        image_size = 28
         if args.unet == 'berkan':
             print('running mnist simple unet')
             model = UNet()
@@ -59,13 +60,13 @@ def main(args):
         print('creating diffusion model')
     elif args.dataset == 'cifar':
         image_channels=3
+        image_size = 32
         if args.unet == 'berkan':
             print('running cifar simple unet')
             model = UNet(in_ch=3)
         elif args.unet == 'openAI':
             print('running cifar OpenAI unet')
             model = create_openAI_Unet(model_config='cifar')
-        diffusion_model = SimpleBrownianBridgeDiffusion(T, model, device, trainY, deterministic=deterministic)
     else:
         raise f"unknown dataset: {args.dataset}"
     
@@ -101,7 +102,7 @@ def main(args):
 
     # Create .npz file
     img_files = [f for f in os.listdir(args.imgs_folder) if f.endswith('.png')]
-    images = np.zeros((len(img_files), 32, 32, image_channels), dtype=np.uint8)
+    images = np.zeros((len(img_files), image_size, image_size, image_channels), dtype=np.uint8)
 
     for i, img_file in enumerate(img_files):
         img_path = os.path.join(args.imgs_folder, img_file)

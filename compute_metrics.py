@@ -12,7 +12,7 @@ def sample_batch(trainY, batch_size, device):
     return data
 
 def process_image(image, mono_channel=False):
-    image = (image - image.min()) / (image.max() - image.min())  # Normalize to [0, 1]
+    #image = (image - image.min()) / (image.max() - image.min())  # Normalize to [0, 1]
     image = (image * 255).clamp(0, 255).byte()  # Scale to [0, 255] and convert to uint8
     if mono_channel:
         image = image.repeat(3, 1, 1)
@@ -69,11 +69,14 @@ def calculate_fid(model_samples_path, train_dataset_path, max_images, dataset):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Calculate FID between model samples and chosen dataset")
-    parser.add_argument("--model_samples_path", type=str, required=True, help="Path to the .npz file containing model samples")
-    parser.add_argument("--train_dataset_path", type=str, required=True, help="Path to the directory containing the dataset")
-    parser.add_argument("--max_images", type=int, default=50000, help="Maximum number of images to process")
-    parser.add_argument("--dataset", type=str, choices=['cifar10', 'mnist'], required=True, help="Dataset to use (cifar10 or mnist)")
-
+    parser.add_argument("--model_samples_path", type=str, default= './aim-bridges-img/samples.npz',
+                        required=False, help="Path to the .npz file containing model samples")
+    parser.add_argument("--train_dataset_path", type=str, default = './aim-bridges-data/mnist',
+                        required=False, help="Path to the directory containing the dataset")
+    parser.add_argument("--max_images", type=int, default = 100,
+                        help="Maximum number of images to process")
+    parser.add_argument("--dataset", type=str, choices=['cifar10', 'mnist'], default= 'mnist',
+                        required=False, help="Dataset to use (cifar10 or mnist)")
 
     args = parser.parse_args()
 
