@@ -168,8 +168,8 @@ if __name__ == "__main__":
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
     det_name = 'det' if deterministic else 'stoch'
-    model_name = f'batch_{batch_size}_T_{T}_{det_name}_{args.unet}_50M'
-    print(f'batch_size: {batch_size}; T: {T}; deterministic: {deterministic}')
+    model_name = f'{args.dataset}_batch_{batch_size}_T_{T}_{det_name}_{args.unet}_50M'
+    print(f'data_set: {args.dataset}; batch_size: {batch_size}; T: {T}; deterministic: {deterministic}')
 
     # Training
     writer = SummaryWriter(log_dir=f'{args.models_folder}/runs/{model_name}')  # Initialize TensorBoard writer

@@ -17,10 +17,15 @@ git submodule update --init --recursive
  - main contains the main code
 
  ## Train a model
-
+Open a shell and start tensorboard to monitor loss ect
  ```
- python simple_bridge.py --data_folder /workspace/aim-bridges-data/cifar10/ --imgs_folder /workspace/aim-bridges-img/ --models_folder /workspace/aim-bridges-models/bridge/ --dataset cifar --unet openAI
+ tensorboard --logdir=aim-bridges-models/bridge/runs
  ```
+Open another shell and kick of the model calibration
+ ```
+python simple_bridge.py --data_folder /workspace/aim-bridges-data/mnist/ --imgs_folder /workspace/aim-bridges-img/ --models_folder /workspace/aim-bridges-models/bridge/ --dataset mnist --unet openAI --batch_size 128 --T 0.1
+ ```
+ model checkpoints are in the folder
   ## Sample imagsges from checkpoint
   ```
   python sample_bridge.py --model /workspace/aim-bridges-models/model_path --imgs_folder /workspace/aim-bridges-img/ --T 0.1 --sigma 0.1 --num_samples 1000
