@@ -29,8 +29,15 @@ python simple_bridge.py --data_folder /workspace/aim-bridges-data/mnist/ --imgs_
  ```
  aim-bridges-models/bridge/checkpoints
  ```
-  ## Sample imagsges from checkpoint
+  ## Sample images from checkpoint
   ```
-  python sample_bridge.py --model /workspace/aim-bridges-models/model_path --imgs_folder /workspace/aim-bridges-img/ --T 0.1 --sigma 0.1 --num_samples 1000
+ python sample_bridges.py 
+--model /workspace/aim-bridges-models/bridge/checkpoints/mnist_batch_128_T_0.1_stoch_openAI_50M_checkpoint_n_batch_15000.pth --imgs_folder /workspace/aim-bridges-img/ --T 0.1 --sigma 0.1 --num_samples 100
   ```
+
+   ## Compute FID
+
+   ```
+   python compute_metrics.py
+   ```
 

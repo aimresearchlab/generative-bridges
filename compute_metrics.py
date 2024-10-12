@@ -4,12 +4,7 @@ import torch
 import torchvision.transforms as transforms
 from torchvision.datasets import CIFAR10
 from torchmetrics.image.fid import FrechetInceptionDistance
-
-def load_cifar10_dataset(root, download=True):
-    transform = transforms.Compose([transforms.ToTensor()])
-    trainset = CIFAR10(root=root, train=True, download=download, transform=transform)
-    testset = CIFAR10(root=root, train=False, download=download, transform=transform)
-    return trainset.data, testset.data
+from utils import load_mnist_dataset, flatten_image, unflatten_image, view_image, load_cifar10_dataset, remove_module_prefix 
 
 def sample_batch(trainY, batch_size, device):
     indices = torch.randperm(len(trainY))[:batch_size]
@@ -25,13 +20,18 @@ def trivial_process_npz_image(image):
     transform = transforms.Compose([transforms.ToTensor()])
     return transform(image)
 
-def calculate_fid(model_samples_path, train_dataset_path, max_images):
+def calculate_fid(model_samples_path, train_dataset_path, max_images, dataset):
     # Load model samples
     data = np.load(model_samples_path)
     bridge_images = data['images']
 
-    # Load CIFAR10 dataset
-    trainY, _ = load_cifar10_dataset(root=train_dataset_path, download=True)
+    # Load dataset
+    if dataset.lower() == 'cifar10':
+        trainY, _ = load_cifar10_dataset(root=train_dataset_path, download=True)
+    elif dataset.lower() == 'mnist':
+        trainY, _ = load_mnist_dataset(root=train_dataset_path, download=True)
+    else:
+        raise ValueError("Invalid dataset. Choose either 'cifar10' or 'mnist'.")
 
     # Limit the number of images processed
     num_images = min(max_images, len(bridge_images), len(trainY))
@@ -65,12 +65,14 @@ def calculate_fid(model_samples_path, train_dataset_path, max_images):
     return fid_value.item()
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Calculate FID between model samples and CIFAR10 dataset")
-    parser.add_argument("model_samples_path", type=str, help="Path to the .npz file containing model samples")
-    parser.add_argument("train_dataset_path", type=str, help="Path to the directory containing CIFAR10 dataset")
+    parser = argparse.ArgumentParser(description="Calculate FID between model samples and chosen dataset")
+    parser.add_argument("--model_samples_path", type=str, required=True, help="Path to the .npz file containing model samples")
+    parser.add_argument("--train_dataset_path", type=str, required=True, help="Path to the directory containing the dataset")
     parser.add_argument("--max_images", type=int, default=50000, help="Maximum number of images to process")
+    parser.add_argument("--dataset", type=str, choices=['cifar10', 'mnist'], required=True, help="Dataset to use (cifar10 or mnist)")
+
 
     args = parser.parse_args()
 
-    fid_score = calculate_fid(args.model_samples_path, args.train_dataset_path, args.max_images)
+    fid_score = calculate_fid(args.model_samples_path, args.train_dataset_path, args.max_images, args.dataset)
     print(f"FID: {fid_score}")
