@@ -117,10 +117,12 @@ if __name__ == "__main__":
     parser.add_argument('--models_folder', default='./aim-bridges-models/denoise/', type=str, required=False, help='Path to the models folder')
     parser.add_argument('--download_data', action='store_true', help='Download the data')
     parser.add_argument("--batch_size", type=float, default=128, help="Batch Size")
+    parser.add_argument("--t_steps", type=float, default=1000, help="Diffusion time")
     parser.add_argument('--verbose', action='store_true')
     parser.add_argument('--save_images', action='store_false', help='Save images')
 
     args = parser.parse_args()
+    check_point_folder = f'{args.models_folder}/checkpoints'
 
     # Create the "data" folder if it does not exist
     if not os.path.exists(args.data_folder):
@@ -129,12 +131,14 @@ if __name__ == "__main__":
         os.makedirs(args.imgs_folder)
     if not os.path.exists(args.models_folder):
         os.makedirs(args.models_folder)
+    if not os.path.exists(check_point_folder):
+        os.makedirs(check_point_folder)
 
     trainY, testY = load_mnist_dataset(root=args.data_folder, download=args.download_data)
 
     device = 'cuda'
     batch_size = args.batch_size
-    t_steps = 1000
+    t_steps = args.t_steps
     deterministic = False
     checkpoint_steps = int((1000 / batch_size) * 64)
     num_batches = 40_000
