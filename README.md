@@ -16,7 +16,18 @@ git submodule update --init --recursive
  - jupyter contains notebooks with simple examples or self-contained experiments
  - main contains the main code
 
- ## Train a model
+
+ ## Train a Diffusion Bridge model
+Open a shell and kick of the model calibration
+ ```
+python ddpm.py --data_folder /workspace/aim-bridges-data/mnist/ --imgs_folder /workspace/aim-bridges-img/ --models_folder /workspace/aim-bridges-models/denoise/ --dataset mnist --unet openAI --batch_size 128 --t_steps 1000
+ ```
+ model checkpoints are in the folder
+ ```
+ aim-bridges-models/bridge/checkpoints
+ ```
+
+ ## Train a Diffusion Bridge model
 Open a shell and start tensorboard to monitor loss ect
  ```
  tensorboard --logdir=aim-bridges-models/bridge/runs
