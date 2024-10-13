@@ -17,10 +17,10 @@ git submodule update --init --recursive
  - main contains the main code
 
 
- ## Train a Diffusion Bridge model
+ ## Train a DDPM model
 Open a shell and kick of the model calibration
  ```
-python ddpm.py --data_folder /workspace/aim-bridges-data/mnist/ --imgs_folder /workspace/aim-bridges-img/ --models_folder /workspace/aim-bridges-models/denoise/ --dataset mnist --unet openAI --batch_size 128 --t_steps 1000
+python ddpm.py --data_folder /workspace/aim-bridges-data/mnist/ --imgs_folder /workspace/aim-ddpm-img/ --models_folder /workspace/aim-ddpm-models/denoise/ --dataset mnist --unet openAI --batch_size 128 --t_steps 1000
  ```
  model checkpoints are in the folder
  ```
