@@ -24,7 +24,7 @@ python ddpm.py --data_folder /workspace/aim-bridges-data/mnist/ --imgs_folder /w
  ```
  model checkpoints are in the folder
  ```
- aim-bridges-models/bridge/checkpoints
+ aim-bridges-models/denoise/checkpoints
  ```
 
  ## Train a Diffusion Bridge model
