@@ -140,8 +140,8 @@ if __name__ == "__main__":
     batch_size = args.batch_size
     t_steps = args.t_steps
     deterministic = False
-    checkpoint_steps = int((1000 / batch_size) * 64)
-    num_batches = 40_000
+    checkpoint_steps = (10000 / batch_size) * 64
+    num_batches = 50000
 
     if args.unet == 'berkan':
         model = UNet()
