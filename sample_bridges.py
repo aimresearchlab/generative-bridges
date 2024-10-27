@@ -112,8 +112,9 @@ def main(args):
         img_array = np.array(img)
         images[i] = img_array[:,:,:image_channels]
 
-    np.savez(os.path.join(args.imgs_folder, 'samples.npz'), images=images)
-    print(f"Saved .npz file: {os.path.join(args.imgs_folder, 'samples.npz')}")
+    img_file_name = f'{args.dataset}_T_{args.T}_{args.unet}_{len(img_files)}'
+    np.savez(os.path.join(args.imgs_folder, f'{img_file_name}.npz'), images=images)
+    print(f"Saved .npz file: {os.path.join(args.imgs_folder, f'{img_file_name}.npz')}")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Sample from a diffusion model")
