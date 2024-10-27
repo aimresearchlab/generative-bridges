@@ -141,7 +141,7 @@ if __name__ == "__main__":
     learning_rate = 1e-4
 
     deterministic = False
-    checkpoint_steps = (1000 / batch_size) * 64
+    checkpoint_steps = (10000 / batch_size) * 64
     num_batches = 50000
 
     if args.dataset == 'mnist':

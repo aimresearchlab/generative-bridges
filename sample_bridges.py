@@ -87,9 +87,11 @@ def main(args):
     num_batches = args.num_samples // batch_size
     remaining_samples = args.num_samples % batch_size
 
+    print(args)
+
     for i in tqdm(range(num_batches + (1 if remaining_samples > 0 else 0)), desc="Generating batches"):
         current_batch_size = batch_size if i < num_batches else remaining_samples
-        batch_samples = diffusion_model.sampling(n_samples=current_batch_size, image_channels=image_channels, use_tqdm=False, n_steps=args.n_steps)
+        batch_samples = diffusion_model.sampling(n_samples=current_batch_size, image_channels=image_channels, img_size=(image_size, image_size), use_tqdm=False, n_steps=args.n_steps)
         
         for j, sample in enumerate(batch_samples):
             sample_idx = i * batch_size + j
