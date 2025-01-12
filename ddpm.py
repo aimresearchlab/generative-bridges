@@ -120,6 +120,7 @@ if __name__ == "__main__":
     parser.add_argument("--t_steps", type=int, default=1000, help="Diffusion time")
     parser.add_argument('--verbose', action='store_true')
     parser.add_argument('--save_images', action='store_false', help='Save images')
+    parser.add_argument('--num_batches', type=int, default=1000)
 
     args = parser.parse_args()
     check_point_folder = f'{args.models_folder}/checkpoints'
@@ -141,7 +142,7 @@ if __name__ == "__main__":
     t_steps = args.t_steps
     deterministic = False
     checkpoint_steps = (10000 / batch_size) * 64
-    num_batches = 50000
+    num_batches = args.num_batches
 
     if args.unet == 'berkan':
         model = UNet()

@@ -18,15 +18,20 @@ git submodule update --init --recursive
 
 
  ## Train a DDPM model
-Open a shell and kick of the model calibration
+Open a shell and kick of the model calibration (curently only supporting ddpm)
  ```
-python ddpm.py --data_folder /workspace/aim-bridges-data/mnist/ --imgs_folder /workspace/aim-ddpm-img/ --models_folder /workspace/aim-ddpm-models/denoise/ --dataset mnist --unet openAI --batch_size 128 --t_steps 1000
+python ddpm.py --data_folder /workspace/aim-bridges-data/mnist/ --imgs_folder /workspace/aim-ddpm-img/ --models_folder /workspace/aim-ddpm-models/denoise/  --unet openAI --batch_size 128 --t_steps 1000
  ```
  model checkpoints are in the folder
  ```
  aim-bridges-models/denoise/checkpoints
  ```
 
+## Sample a DDPM model from checkpoint
+```
+python sample_ddpm.py --model /workspace/aim-ddpm-models/denoise/checkpoints/batch_128_t_steps_1000_stoch_final_model.pth --imgs_folder /workspace/aim-ddpm-img/ --num_samples 10
+```
+Saved .npz file: ```/workspace/aim-ddpm-img/mnist_steps_1000_openAI_100.npz```
  ## Train a Diffusion Bridge model
 Open a shell and start tensorboard to monitor loss ect
  ```
@@ -57,7 +62,7 @@ that is used as input for the FID calc. Before switching off the machine remembe
 rm aim-bridges-img/sample_*.png
 ```
    ## Compute FID
-
+Use the appropriate model_samples_path, dataset and max_imageds (50k for mnist)
    ```
  python compute_metrics.py --model_samples_path /workspace/aim-bridges-img/samples.npz --train_dataset_path /workspace/aim-bridges-data/mnist --dataset mnist --max_images 10
    ```

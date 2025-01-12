@@ -76,7 +76,8 @@ def main(args):
     model.load_state_dict(remove_module_prefix(checkpoint))
 
     # Create denoise diffusion model - T is here conflated with n_steps
-    diffusion_model_denoise = DiffusionModel(args.n_steps, model, 'cuda', trainY=None, deterministic=True)
+    diffusion_model_denoise = DiffusionModel(args.n_steps, model, 'cuda', None)
+
     #diffusion_model = SimpleBrownianBridgeDiffusion(args.T, model, 'cuda', trainY=None, deterministic=True)
 
     # Create output directory if it doesn't exist
@@ -92,9 +93,12 @@ def main(args):
 
     for i in tqdm(range(num_batches + (1 if remaining_samples > 0 else 0)), desc="Generating batches"):
         current_batch_size = batch_size if i < num_batches else remaining_samples
-        batch_samples = diffusion_model_denoise.sampling(n_samples=current_batch_size, use_tqdm=False)
-        #batch_samples = diffusion_model.sampling(n_samples=current_batch_size, image_channels=image_channels, img_size=(image_size, image_size), use_tqdm=False, n_steps=args.n_steps)
-        
+
+        batch_samples = diffusion_model_denoise.sample_w_reverse_process(n_samples=current_batch_size,
+         image_channels=image_channels,
+          img_size=(image_size, image_size),
+            use_tqdm=False)   
+
         for j, sample in enumerate(batch_samples):
             sample_idx = i * batch_size + j
             sample_np = sample.cpu().permute(1, 2, 0).numpy()
@@ -114,7 +118,7 @@ def main(args):
         img_array = np.array(img)
         images[i] = img_array[:,:,:image_channels]
 
-    img_file_name = f'{args.dataset}_T_{args.T}_{args.unet}_{len(img_files)}'
+    img_file_name = f'{args.dataset}_steps_{args.n_steps}_{args.unet}_{len(img_files)}'
     np.savez(os.path.join(args.imgs_folder, f'{img_file_name}.npz'), images=images)
     print(f"Saved .npz file: {os.path.join(args.imgs_folder, f'{img_file_name}.npz')}")
 
@@ -124,8 +128,6 @@ if __name__ == "__main__":
     parser.add_argument("--imgs_folder", type=str, required=True, help="Folder to save generated images")
     parser.add_argument('--dataset', default='mnist', help='Select dataset, mnist, cifar')
     parser.add_argument('--unet', default='openAI', help='Select UNet: berkan or openAI')
-    parser.add_argument("--T", type=float, default=0.1, help="Diffusion time")
-    parser.add_argument("--sigma", type=float, default=0.1, help="Noise level")
     parser.add_argument("--num_samples", type=int, default=100, help="Number of samples to generate")
     parser.add_argument("--n_steps", type=int, default=1000, help="Number of diffusion steps")
     parser.add_argument("--batch_size", type=int, default=128, help="Batch size for sampling")
