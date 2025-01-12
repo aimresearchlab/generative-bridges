@@ -116,8 +116,8 @@ if __name__ == "__main__":
     parser.add_argument('--imgs_folder', default='./imgs/mnist/denoise', type=str, required=False, help='Path to the imgs folder')
     parser.add_argument('--models_folder', default='./aim-bridges-models/denoise/', type=str, required=False, help='Path to the models folder')
     parser.add_argument('--download_data', action='store_true', help='Download the data')
-    parser.add_argument("--batch_size", type=float, default=128, help="Batch Size")
-    parser.add_argument("--t_steps", type=float, default=1000, help="Diffusion time")
+    parser.add_argument("--batch_size", type=int, default=128, help="Batch Size")
+    parser.add_argument("--t_steps", type=int, default=1000, help="Diffusion time")
     parser.add_argument('--verbose', action='store_true')
     parser.add_argument('--save_images', action='store_false', help='Save images')
 
