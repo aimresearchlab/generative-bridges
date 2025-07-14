@@ -11,7 +11,7 @@ from unet_openai import create_openAI_Unet
 from unet import UNet
 from ddpm import DiffusionModel
 
-def save_image(image, save_path):
+def save_image_bkp(image, save_path):
     """
     Save an image to the specified path, handling both single-channel and multi-channel images.
     
@@ -40,6 +40,39 @@ def save_image(image, save_path):
 
 def remove_module_prefix(state_dict):
     return {k.replace('module.', ''): v for k, v in state_dict.items()}
+
+def save_image(image, save_path):
+    """
+    Save an image to the specified path, handling both single-channel and multi-channel images.
+    
+    Args:
+    image (np.ndarray): The image to save. Can be single-channel or multi-channel.
+    save_path (str): The full path where the image should be saved.
+    """
+    # Ensure the image is a numpy array
+    image_np = np.asarray(image)
+    
+    # Normalize floating point images to 0-1 range
+    if image_np.dtype in [np.float32, np.float64]:
+        if np.max(image_np) > 1.0 or np.min(image_np) < 0.0:
+            # Normalize to 0-1 range
+            image_np = (image_np - np.min(image_np)) / (np.max(image_np) - np.min(image_np))
+    
+    # Check the number of dimensions
+    if image_np.ndim == 2:
+        # It's a single-channel image (grayscale)
+        plt.imsave(save_path, image_np, cmap='gray')
+    elif image_np.ndim == 3:
+        if image_np.shape[2] == 1:
+            # It's a single-channel image with an extra dimension
+            plt.imsave(save_path, image_np[:,:,0], cmap='gray')
+        elif image_np.shape[2] in [3, 4]:
+            # It's an RGB or RGBA image
+            plt.imsave(save_path, image_np)
+        else:
+            raise ValueError(f"Unexpected number of channels: {image_np.shape[2]}")
+    else:
+        raise ValueError(f"Unexpected number of dimensions: {image_np.ndim}")
 
 def process_image(image):
     # Implement your image processing logic here

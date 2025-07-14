@@ -47,7 +47,7 @@ python simple_bridge.py --data_folder /workspace/aim-bridges-data/mnist/ --imgs_
  ```
   ## Sample images from checkpoint
   ```
- python sample_bridges.py --model /workspace/aim-bridges-models/bridge/checkpoints/mnist_batch_128_T_0.1_stoch_openAI_50M_checkpoint_n_batch_15000.pth --imgs_folder /workspace/aim-bridges-img/ --T 0.1 --sigma 0.1 --num_samples 100
+ python sample_bridges.py --model /workspace/aim-bridges-models/bridge/checkpoints/mnist_batch_128_T_0.1_stoch_openAI_50M_checkpoint_n_batch_15000.pth --imgs_folder /workspace/aim-bridges-img/ --T 0.1 --sigma 0.1 --num_samples 100 --n_steps 100
   ```
 The scripts saves images as 
 ```
@@ -67,3 +67,22 @@ Use the appropriate model_samples_path, dataset and max_imageds (50k for mnist)
  python compute_metrics.py --model_samples_path /workspace/aim-bridges-img/samples.npz --train_dataset_path /workspace/aim-bridges-data/mnist --dataset mnist --max_images 10
    ```
 
+  ## Train and sample Improved Diffusion
+
+```bash
+MODEL_FLAGS="--image_size 28 --learn_sigma True"
+DIFFUSION_FLAGS="--diffusion_steps 1000 --noise_schedule cosine"
+TRAIN_FLAGS="--lr 1e-4 --batch_size 128"
+
+python scripts/image_train.py --data_dir datasets/mnist/train $MODEL_FLAGS $DIFFUSION_FLAGS $TRAIN_FLAGS
+``` 
+
+The above training script saves checkpoints to `.pt` files in the logging directory. These checkpoints will have names like `ema_0.9999_200000.pt` and `model200000.pt`. You will likely want to sample from the EMA models, since those produce much better samples.
+
+Once you have a path to your model, you can generate a large batch of samples like so:
+
+```
+DIFFUSION_FLAGS="--diffusion_steps 2 --noise_schedule cosine"
+python scripts/image_sample.py --model_path /path/to/model.pt $MODEL_FLAGS $DIFFUSION_FLAGS --num_samples 100
+```
+this saves to tmp `saving to /tmp/openai-2025-01-18-22-54-48-956751/samples_50000x28x28x3.npz`

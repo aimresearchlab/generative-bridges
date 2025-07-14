@@ -77,6 +77,29 @@ def process_image(image, mono_channel=False):
         image = image.repeat(3, 1, 1)
     return image
 
+def process_image_auto(image):
+    # Input validation
+    if not torch.is_tensor(image):
+        raise TypeError("Input must be a torch tensor")
+    if not (len(image.shape) in [2, 3]):
+        raise ValueError("Image must be 2D or 3D tensor")
+        
+    # Normalize to [0, 1]
+    image = (image - image.min()) / (image.max() - image.min())
+    
+    # Scale to [0, 255] and convert to uint8
+    image = (image * 255).clamp(0, 255).byte()
+    
+    # Check dimensionality and channels
+    if len(image.shape) == 2:  # HxW
+        image = image.unsqueeze(0).repeat(3, 1, 1)
+    elif len(image.shape) == 3 and image.shape[0] == 1:  # 1xHxW
+        image = image.repeat(3, 1, 1)
+    elif len(image.shape) == 3 and image.shape[0] not in [1, 3]:
+        raise ValueError(f"Unexpected number of channels: {image.shape[0]}")
+    
+    return image
+
 def trivial_process_npz_image(image):
     transform = transforms.Compose([transforms.ToTensor()])
     return transform(image)
@@ -114,9 +137,18 @@ def calculate_fid(model_samples_path, train_dataset_path, max_images, dataset):
     bridge_images = bridge_images[:num_images]
     trainY = trainY[:num_images]
 
+    num_images_test = min(max_images, len(bridge_images), len(testY))
+    bridge_images_test = bridge_images[:num_images_test]
+    testY = testY[:num_images_test]
+
     # Process model samples
     npz_images_processed = torch.stack([trivial_process_npz_image(image) for image in bridge_images]).to('cuda')
-    npz_images_processed_int = torch.stack([process_image(samp, mono_channel) for samp in npz_images_processed])
+    npz_images_processed_int = torch.stack([process_image_auto(samp) for samp in npz_images_processed])
+
+    npz_images_processed_test = torch.stack([trivial_process_npz_image(image) for image in bridge_images_test]).to('cuda')
+    npz_images_processed_int_test = torch.stack([process_image_auto(samp) for samp in npz_images_processed_test])
+
+    print(f'num images train {num_images}; num images test {num_images_test}')
 
     # Process samples
     train_Y_int = torch.stack([process_image(samp, mono_channel) for samp in trainY]).to('cuda')
@@ -145,22 +177,23 @@ def calculate_fid(model_samples_path, train_dataset_path, max_images, dataset):
     # Compute FID
     fid_value = fid.compute()
     fid_train = fid_value.item()
+    print(f'fid train {fid_value}')
 
     # Initialize FID computation for test data
     fid = FrechetInceptionDistance().to('cuda')
-
+    
     chunk_size = 6
-    num_batches = (num_images + chunk_size - 1) // chunk_size  # Calculate total number of batches
+    num_batches = (num_images_test + chunk_size - 1) // chunk_size  # Calculate total number of batches
 
     # Update FID with chunks of data
     with tqdm(total=num_batches, desc="Processing batches", unit="batch") as pbar:
-        for batch_start in range(0, num_images, chunk_size):
-            batch_end = min(batch_start + chunk_size, num_images)
+        for batch_start in range(0, num_images_test, chunk_size):
+            batch_end = min(batch_start + chunk_size, num_images_test)
             
-            batch_chunk_train = test_Y_int[batch_start:batch_end]
-            fid.update(batch_chunk_train, real=True)
+            batch_chunk_test = test_Y_int[batch_start:batch_end]
+            fid.update(batch_chunk_test, real=True)
 
-            batch_chunk_model = npz_images_processed_int[batch_start:batch_end]
+            batch_chunk_model = npz_images_processed_int_test[batch_start:batch_end]
             fid.update(batch_chunk_model, real=False)
             # Update progress bar
             pbar.update(1)
@@ -169,6 +202,7 @@ def calculate_fid(model_samples_path, train_dataset_path, max_images, dataset):
     # Compute FID
     fid_value = fid.compute()
     fid_test = fid_value.item()
+    print(f'fid test {fid_value}')
 
     return {'fid_train': fid_train, 'fid_test': fid_test,}
 

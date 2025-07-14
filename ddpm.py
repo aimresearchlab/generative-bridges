@@ -7,7 +7,7 @@ from tqdm import tqdm
 import matplotlib.pyplot as plt
 from unet import UNet
 from unet_openai import create_openAI_Unet
-from utils import load_mnist_dataset, check_torch_cuda
+from utils import load_mnist_dataset, check_torch_cuda, load_cifar10_dataset
 import argparse
 from torch.utils.tensorboard import SummaryWriter
 
@@ -25,7 +25,7 @@ def unflatten_data(vector, shape=(28, 28)):
 def sample_batch(trainX, batch_size, device):
     indices = torch.randperm(len(trainX))[:batch_size]
     data = torch.stack([trainX[i] for i in indices]).to(device)
-    data = unflatten_data(data)  # Reshape to (batch_size, 1, 28, 28)
+    #data = unflatten_data(data)  # Reshape to (batch_size, 1, 28, 28)
     return torch.nn.functional.interpolate(data, size=(32, 32))
 
 
@@ -96,7 +96,7 @@ class DiffusionModel:
 
 
 def save_samples(diffusion_model, nb_images, n_batch, img_dir):
-    samples = diffusion_model.sample_w_reverse_process(n_samples=nb_images, use_tqdm=False)
+    samples = diffusion_model.sample_w_reverse_process(image_channels=3, n_samples=nb_images, use_tqdm=False)#TODO image_channels a param
     plt.figure(figsize=(17, 17))
     for i in range(nb_images):
         plt.subplot(9, 9, 1 + i)
@@ -121,6 +121,7 @@ if __name__ == "__main__":
     parser.add_argument('--verbose', action='store_true')
     parser.add_argument('--save_images', action='store_false', help='Save images')
     parser.add_argument('--num_batches', type=int, default=1000)
+    parser.add_argument('--dataset', default='./data', type=str, required=False, help='Path to the data folder')
 
     args = parser.parse_args()
     check_point_folder = f'{args.models_folder}/checkpoints'
@@ -135,7 +136,10 @@ if __name__ == "__main__":
     if not os.path.exists(check_point_folder):
         os.makedirs(check_point_folder)
 
-    trainY, testY = load_mnist_dataset(root=args.data_folder, download=args.download_data)
+    if args.dataset == 'mnist':
+        trainY, testY = load_mnist_dataset(root=args.data_folder, download=args.download_data)
+    elif args.dataset == 'cifar':
+         trainY, testY = load_cifar10_dataset(root=args.data_folder, download=args.download_data)
 
     device = 'cuda'
     batch_size = args.batch_size
@@ -149,7 +153,7 @@ if __name__ == "__main__":
         model = nn.DataParallel(model)
     elif args.unet == 'openAI':
         print('trying mnist openAI')
-        model = create_openAI_Unet(model_config='mnist')
+        model = create_openAI_Unet(model_config=args.dataset)
 
     optimizer = torch.optim.Adam(model.parameters(), lr=2e-5)
     diffusion_model = DiffusionModel(t_steps, model, device, trainY)
@@ -165,12 +169,12 @@ if __name__ == "__main__":
         loss = diffusion_model.train_w_fwd_process(batch_size, optimizer)
 
         # Save sampled images every 2000 epochs
-        if args.save_images and (n_batch + 1) % checkpoint_steps == 0:
-            save_samples(diffusion_model, nb_images=81, n_batch=n_batch + 1, img_dir=args.imgs_folder)
+        #if args.save_images and (n_batch + 1) % checkpoint_steps == 0:
+            #save_samples(diffusion_model, nb_images=81, n_batch=n_batch + 1, img_dir=args.imgs_folder)
         # Log the loss to TensorBoard
         writer.add_scalar('Loss/train', loss, n_batch)
 
-        if n_batch % checkpoint_steps == 0:
+        if n_batch % checkpoint_steps == 0 or n_batch == 1000:
             checkpoint_path = os.path.join(f'{args.models_folder}/checkpoints', f"{model_name}_checkpoint_n_batch_{n_batch}.pth")
             torch.save(model.state_dict(), checkpoint_path)
             if args.verbose:

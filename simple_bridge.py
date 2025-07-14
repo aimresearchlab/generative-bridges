@@ -142,7 +142,7 @@ if __name__ == "__main__":
 
     deterministic = False
     checkpoint_steps = (10000 / batch_size) * 64
-    num_batches = 50000
+    num_batches = 40000
 
     if args.dataset == 'mnist':
         if args.unet == 'berkan':
@@ -180,7 +180,7 @@ if __name__ == "__main__":
 
         writer.add_scalar('Loss/train', loss, n_batch)  # Log the loss to TensorBoard
 
-        if n_batch % checkpoint_steps == 0:
+        if n_batch % checkpoint_steps == 0 or n_batch == 1000:
             checkpoint_path = os.path.join(check_point_folder, f"{model_name}_checkpoint_n_batch_{n_batch}.pth")
             torch.save(model.state_dict(), checkpoint_path)
             if args.verbose:
