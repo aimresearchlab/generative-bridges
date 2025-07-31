@@ -31,24 +31,42 @@ class SimpleBrownianBridgeDiffusion:
         """
 
         # sample target images y
+        # (Sean): Step 1 in 2.2.1
         y = sample_batch(self.trainY, batch_size, self.device, interpolate_size=self.interpolate_size)
+
         # sample random times from [0,T)
+        # (Sean): Step 1 in 2.2.1
         t = torch.rand(batch_size, device=self.device, dtype=torch.float32) * self.T
+
         # Unsqueeze t to align dimensions
         t = t.unsqueeze(1).unsqueeze(2).unsqueeze(3)  # Shape: (batch_size, 1, 1, 1)
+
         # sample x as independent gaussians 
+        # (Sean): Step 1 in 2.2.1
         x = torch.randn(y.shape, device=self.device)
+        
         # compute E_t
+        # (Sean): Step 2 in 2.2.1
         E = x + (y - x) * t / self.T
+        
         # compute V_t
+        # (Sean): Step 2 in 2.2.1
         V = t * (self.T - t) / self.T
+
         # compute xi_t sampling 
+        # (Sean): Step 2 in 2.2.1
         xi = E + torch.randn(y.shape, device=self.device) * torch.sqrt(V)
+
+
         # Take one gradient descent step
         # The input to function_approximator must be 4D: (batch_size, channels, height, width)
         # t is a list of times [batch_size] (hence squeeze)
+
+        # (Sean): Step 3 in 2.2.1
         img_predicted = self.function_approximator(xi, t.squeeze())
         loss = nn.functional.mse_loss(y, img_predicted)
+
+        # (Sean): Step 4 in 2.2.1
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
@@ -56,32 +74,44 @@ class SimpleBrownianBridgeDiffusion:
         return loss.item()
 
     @torch.no_grad()
-    def sampling(self, n_samples=1, image_channels=1, img_size=(32, 32), n_steps=100,
+    # (Sean): n_steps here represents sampling steps, I've set it to 10 to reduce computational load
+    def sampling(self, n_samples=1, image_channels=1, img_size=(32, 32), n_steps=10,
                  use_tqdm=True):
         """
         Corollary 2.9 implementation
         """
         # create n_steps t
         # messing about with n_steps as small eps gets rounded away
+        # (Sean): Step 1 in 2.2.2
         t_values = torch.linspace(0, self.T, steps=n_steps + 1, device=self.device) * (self.T - self._EPS) / self.T
 
         # sample x
+        # (Sean): Step 4 in 2.2.2
         delta = (self.T - self._EPS) / n_steps
+
+        # (Sean): Step 2 in 2.2.2
         x = torch.randn((n_samples, image_channels, img_size[0], img_size[1]),
                         device=self.device)
 
         xi_t = x
         #Z_t = x
 
+
         progress_bar = tqdm if use_tqdm else lambda x: x
         for idx, t in enumerate(progress_bar(t_values[:-1])):
+
+            # (Sean): Step 4a in 2.2.2
             t = torch.tensor(t, device=self.device)
             inv_lambda = 1 / (self.T - t)
+
             # mu_t = x; Sigma_tt = t
             #Z = x + torch.randn(x.shape, device=self.device)*torch.sqrt(t)
             # need a list of repeated t with len same as n_samples
+
             t_list = [t for _ in range(n_samples)]
             #xi = xi_t + inv_lambda*(self.function_approximator(xi_t, torch.stack(t_list)) - xi_t )*delta + (Z - Z_t)
+
+            # (Sean): Step 4b and 4c in 2.2.2
             xi = xi_t + inv_lambda * (self.function_approximator(xi_t, torch.stack(t_list)) - xi_t) * delta
             if not self._deterministic:
                 dZ = torch.randn(x.shape, device=self.device) * torch.sqrt(torch.tensor(delta))
@@ -142,7 +172,9 @@ if __name__ == "__main__":
 
     deterministic = False
     checkpoint_steps = (10000 / batch_size) * 64
-    num_batches = 40000
+    
+    # (Sean): Made num_batches smaller instead of 40000 so tests can run quicker
+    num_batches = 5000
 
     if args.dataset == 'mnist':
         if args.unet == 'berkan':

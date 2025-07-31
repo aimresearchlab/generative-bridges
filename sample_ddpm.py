@@ -78,6 +78,7 @@ def process_image(image):
     # Implement your image processing logic here
     # For now, we'll just return the image as is
     return image
+    
 
 def main(args):
     # Create model
