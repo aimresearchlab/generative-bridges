@@ -34,6 +34,7 @@ def load_mnist_dataset(root: str = './data', download=True):
 
     # Transform to tensor and flatten the image to a single vector
     transform = transforms.Compose([
+        # transforms.Resize((32, 32)),  # Upscale MNIST images to 32x32
         transforms.ToTensor(),  # Convert images to PyTorch tensors
         transforms.Normalize((0.5,), (0.5,)),  # Normalize the pixel values
     ])

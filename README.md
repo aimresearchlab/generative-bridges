@@ -1,5 +1,9 @@
 # generative-bridges
 
+## Some comments
+
+This is a modified version of the original repo, much of the code and file structure has been changed to run on my local machine. I've also tried to directly clone OpenAI's diffusion model into this repo so all 3 models are nicely stored and accessed from one place. It's likely that the files on this branch will only work on my machine unless some changes are made to the scripts and file structures. 
+
 ## Getting Started
 Clone the repo with 
 
