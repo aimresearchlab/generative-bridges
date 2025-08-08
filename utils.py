@@ -66,6 +66,21 @@ def load_cifar10_dataset(root: str = './data', download=True):
 
     return train_images, test_images
 
+def load_cifar10grey_dataset(root: str = './data', download=True):
+    transform = transforms.Compose([
+        transforms.Grayscale(num_output_channels=1),  # Convert to grayscale
+        transforms.ToTensor(),  # Convert images to PyTorch tensors
+        transforms.Normalize((0.5,), (0.5,)),  # Normalize the pixel values
+    ])
+
+    train_set = torchvision.datasets.CIFAR10(root=root, train=True, download=download, transform=transform)
+    test_set = torchvision.datasets.CIFAR10(root=root, train=False, download=download, transform=transform)
+
+    # Extract only the images from datasets
+    train_images = [data[0] for data in train_set]
+    test_images = [data[0] for data in test_set]
+
+    return train_images, test_images
 
 def view_image(image):
     """

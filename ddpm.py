@@ -7,7 +7,7 @@ from tqdm import tqdm
 import matplotlib.pyplot as plt
 from unet import UNet
 from unet_openai import create_openAI_Unet
-from utils import load_mnist_dataset, check_torch_cuda, load_cifar10_dataset
+from utils import load_mnist_dataset, check_torch_cuda, load_cifar10_dataset, load_cifar10grey_dataset
 import argparse
 from torch.utils.tensorboard import SummaryWriter
 
@@ -174,10 +174,15 @@ if __name__ == "__main__":
         image_size = 32
         cmap = None  # RGB
         trainY, testY = load_cifar10_dataset(root=args.data_folder, download=args.download_data)
+    elif args.dataset.lower() == "cifar-greyscale":
+        in_channels = 1  # Changed to 1 for grayscale
+        image_size = 32
+        cmap = "gray"  # Set to gray for grayscale images
+        trainY, testY = load_cifar10grey_dataset(root=args.data_folder, download=args.download_data)
     else:
         raise ValueError("Unsupported dataset: " + args.dataset)
 
-    device = 'cuda'
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     batch_size = args.batch_size
     t_steps = args.t_steps
     deterministic = False
