@@ -10,7 +10,7 @@ from tqdm import tqdm
 
 from unet import UNet
 from unet_openai import create_openAI_Unet, model_and_diffusion_defaults_cifar10
-from utils import load_mnist_dataset, load_cifar10_dataset, check_torch_cuda, sample_batch
+from utils import load_mnist_dataset, load_cifar10_dataset, check_torch_cuda, sample_batch, load_cifar10grey_dataset
 
 
 class SimpleBrownianBridgeDiffusion:
@@ -161,6 +161,10 @@ if __name__ == "__main__":
         trainY, testY = load_mnist_dataset(root=args.data_folder, download=args.download_data)
     elif args.dataset == 'cifar':
          trainY, testY = load_cifar10_dataset(root=args.data_folder, download=args.download_data)
+
+    # (Sean): Added support for cifar-greyscale dataset
+    elif args.dataset == 'cifar-greyscale':
+         trainY, testY = load_cifar10grey_dataset(root=args.data_folder, download=args.download_data)
     else:
         raise f"unknown dataset: {args.dataset}"
 
@@ -174,7 +178,7 @@ if __name__ == "__main__":
     checkpoint_steps = (10000 / batch_size) * 64
     
     # (Sean): Made num_batches smaller instead of 40000 so tests can run quicker
-    num_batches = 5000
+    num_batches = 2500
 
     if args.dataset == 'mnist':
         if args.unet == 'berkan':
@@ -193,8 +197,20 @@ if __name__ == "__main__":
             print('running cifar OpenAI unet')
             model = create_openAI_Unet(model_config='cifar')
         diffusion_model = SimpleBrownianBridgeDiffusion(T, model, device, trainY, deterministic=deterministic)
+
+    # (Sean): UNET for CIFAR-10 grayscale dataset
+    elif args.dataset == 'cifar-greyscale':
+        if args.unet == 'berkan':
+            print('running cifar simple unet')
+            model = UNet(in_ch=1)
+        elif args.unet == 'openAI':
+            print('running cifar-greyscale OpenAI unet')
+            model = create_openAI_Unet(model_config='cifar-greyscale')
+        diffusion_model = SimpleBrownianBridgeDiffusion(T, model, device, trainY, deterministic=deterministic)
+    
     else:
         raise f"unknown dataset: {args.dataset}"
+    
     print('data parallel')
     model = nn.DataParallel(model)
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)

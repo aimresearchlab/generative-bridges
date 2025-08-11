@@ -104,6 +104,18 @@ def main(args):
         elif args.unet == 'openAI':
             print('running cifar OpenAI unet')
             model = create_openAI_Unet(model_config='cifar')
+
+    # (Sean): Added support for CIFAR-10 grayscale dataset
+    # (Sean): Must add --dataset cifar-greyscale to command line arguments
+    elif args.dataset == 'cifar-greyscale':
+        image_channels=1
+        image_size = 32
+        if args.unet == 'berkan':
+            print('running cifar-greyscale simple unet')
+            model = UNet()
+        elif args.unet == 'openAI':
+            print('running cifar-greyscale OpenAI unet')
+            model = create_openAI_Unet(model_config='cifar-greyscale')
     else:
         raise f"unknown dataset: {args.dataset}"
     
