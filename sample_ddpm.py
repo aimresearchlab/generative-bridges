@@ -83,6 +83,7 @@ def process_image(image):
 def main(args):
     # Create model
     if args.dataset == 'mnist':
+        print('Running MNIST dataset')
         image_channels=1
         image_size = 28
         if args.unet == 'berkan':
@@ -101,16 +102,30 @@ def main(args):
         elif args.unet == 'openAI':
             print('running cifar OpenAI unet')
             model = create_openAI_Unet(model_config='cifar')
+
+    # (Sean Backup Laptop Edit): Added support for CIFAR-10 grayscale dataset
+    elif args.dataset == 'cifar-greyscale':
+        image_channels=1
+        image_size = 32
+        if args.unet == 'berkan':
+            print('running cifar-greyscale simple unet')
+            model = UNet()
+        elif args.unet == 'openAI':
+            print('running cifar-greyscale OpenAI unet')
+            model = create_openAI_Unet(model_config='cifar-greyscale')
     else:
         raise f"unknown dataset: {args.dataset}"
     
     # Load checkpoint
+    # (Sean Backup Laptop Edit): Added additional cpu option since I don't currently have a GPU
     print(f"Loading checkpoint '{args.model}'")
-    checkpoint = torch.load(args.model)
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    print(f"Using device: {device}")
+    checkpoint = torch.load(args.model, map_location=torch.device(device))
     model.load_state_dict(remove_module_prefix(checkpoint))
 
     # Create denoise diffusion model - T is here conflated with n_steps
-    diffusion_model_denoise = DiffusionModel(args.n_steps, model, 'cuda', None)
+    diffusion_model_denoise = DiffusionModel(args.n_steps, model, device, None)
 
     #diffusion_model = SimpleBrownianBridgeDiffusion(args.T, model, 'cuda', trainY=None, deterministic=True)
 
@@ -160,6 +175,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Sample from a diffusion model")
     parser.add_argument("--model", type=str, required=True, help="Path to the model checkpoint")
     parser.add_argument("--imgs_folder", type=str, required=True, help="Folder to save generated images")
+
+    # (Sean Backup Laptop Edit): Make sure to add --dataset argument for cifar-greyscale otherwise it will default to mnist
     parser.add_argument('--dataset', default='mnist', help='Select dataset, mnist, cifar')
     parser.add_argument('--unet', default='openAI', help='Select UNet: berkan or openAI')
     parser.add_argument("--num_samples", type=int, default=100, help="Number of samples to generate")

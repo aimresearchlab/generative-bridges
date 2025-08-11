@@ -35,6 +35,39 @@ def model_and_diffusion_defaults_cifar10():
 
     return result
 
+# (Sean Backup Laptop Edit): Added defaults for grayscale CIFAR-10.
+# Changed in_channels to 1, image_size to 32, and out_channels to 2 if learn_sigma is True, else 1.
+def model_and_diffusion_defaults_cifargreyscale():
+    """
+    Added defaults for grayscale CIFAR-10.
+    """
+    result =  dict(
+        image_size=32,
+        num_channels=64,
+        in_channels=1,
+        num_res_blocks=2,
+        num_heads=4,
+        num_heads_upsample=-1,
+        attention_resolutions="16,8",
+        dropout=0.0,
+        learn_sigma=False,
+        sigma_small=False,
+        class_cond=False,
+        diffusion_steps=1000,
+        noise_schedule="linear",
+        timestep_respacing="",
+        use_kl=False,
+        predict_xstart=False,
+        rescale_timesteps=True,
+        rescale_learned_sigmas=True,
+        use_checkpoint=False,
+        use_scale_shift_norm=True,
+    )
+
+    result['out_channels'] = 2 if result['learn_sigma'] else 1
+
+    return result
+
 
 def model_and_diffusion_defaults_mnist():
     """
@@ -104,6 +137,12 @@ def create_openAI_Unet(model_config='mnist'):
     elif model_config == 'mnist':
         model = create_model_and_diffusion(
             **model_and_diffusion_defaults_mnist()
+        )
+
+    # (Sean Backup Laptop Edit): Called in default settings for cifar-greyscale
+    elif model_config == 'cifar-greyscale':
+        model = create_model_and_diffusion(
+            **model_and_diffusion_defaults_cifargreyscale()
         )
     else:
         raise NotImplementedError(f'{model_config} not supported.')

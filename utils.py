@@ -66,7 +66,10 @@ def load_cifar10_dataset(root: str = './data', download=True):
 
     return train_images, test_images
 
-def load_cifar10grey_dataset(root: str = './data', download=True):
+
+# (Sean Backup Laptop Edit): Added function to load CIFAR-10 grayscale dataset
+# Need to somehow get the greyscale to go into a different folder than the usual CIFAR-10 dataset
+def load_cifar10grey_dataset(root: str = 'C:/AIMResearch/cifar_grey', download=True):
     transform = transforms.Compose([
         transforms.Grayscale(num_output_channels=1),  # Convert to grayscale
         transforms.ToTensor(),  # Convert images to PyTorch tensors

@@ -174,6 +174,9 @@ if __name__ == "__main__":
         image_size = 32
         cmap = None  # RGB
         trainY, testY = load_cifar10_dataset(root=args.data_folder, download=args.download_data)
+
+
+    # (Sean Backup Laptop Edit): Added this to consider grayscale CIFAR-10 dataset
     elif args.dataset.lower() == "cifar-greyscale":
         in_channels = 1  # Changed to 1 for grayscale
         image_size = 32
@@ -192,9 +195,12 @@ if __name__ == "__main__":
     if args.unet == 'berkan':
         model = UNet()
         model = nn.DataParallel(model)
+    
     elif args.unet == 'openAI':
-        print('trying mnist openAI')
-        model = create_openAI_Unet(model_config=args.dataset.lower())
+        print('trying openAI')
+        model = create_openAI_Unet(
+            model_config=args.dataset.lower(),
+        )
 
     optimizer = torch.optim.Adam(model.parameters(), lr=2e-5)
     diffusion_model = DiffusionModel(t_steps, model, device, trainY)
