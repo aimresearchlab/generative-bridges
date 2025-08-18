@@ -8,11 +8,12 @@ def model_and_diffusion_defaults_cifar10():
     """
     Defaults for image training.
     """
+    # (Sean): Changed num_channels to 64, num_res_blocks to 2 to reduce VRAM usage. Runtime per iteration goes from 35s to 3s
     result =  dict(
         image_size=32,
-        num_channels=128,
+        num_channels=64,
         in_channels=3,
-        num_res_blocks=3,
+        num_res_blocks=2,
         num_heads=4,
         num_heads_upsample=-1,
         attention_resolutions="16,8",
