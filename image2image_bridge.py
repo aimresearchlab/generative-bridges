@@ -145,11 +145,17 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Set folders input and output")
     parser.add_argument('--data_folder', default='./data', type=str, required=False, help='Path to the data folder')
+
+    # (Sean): Initial data folder for the first dataset
+    parser.add_argument('--initial_data_folder', default='./data', type=str, required=False, help='Path to the data folder for initial distribution')
+    
     parser.add_argument('--imgs_folder', default='./imgs/mnist/bridge', type=str, required=False, help='Path to the imgs folder')
     parser.add_argument('--models_folder', default='./aim-bridges-models/bridge', type=str, required=False, help='Path to the models folder')
     parser.add_argument('--dataset', default='cifar', help='Select dataset, mnist, cifar')
+    
     # (Sean): Initial dataset for the bridge
     parser.add_argument('--initial_dataset', default='cifar-greyscale', help='Select dataset, cifar-greyscale, cifar')
+    
     parser.add_argument('--unet', default='openAI', help='Select UNet: berkan or openAI')
     parser.add_argument("--T", type=float, default=0.1, help="Diffusion time")
     parser.add_argument("--batch_size", type=int, default=72, help="Batch Size")
@@ -182,18 +188,14 @@ if __name__ == "__main__":
     
 
     # (Sean): Adding second dataset for initial distribution (X)
-    if not os.path.exists(args.data_folder):
-        os.makedirs(args.data_folder)
-    if not os.path.exists(args.imgs_folder):
-        os.makedirs(args.imgs_folder)
-    if not os.path.exists(check_point_folder):
-        os.makedirs(check_point_folder)
+    if not os.path.exists(args.initial_data_folder):
+        os.makedirs(args.initial_data_folder)
     if args.initial_dataset == 'mnist':
-        trainX, testX = load_mnist_dataset(root=args.data_folder, download=args.download_data)
+        trainX, testX = load_mnist_dataset(root=args.initial_data_folder, download=args.download_data)
     elif args.initial_dataset == 'cifar':
-         trainX, testX = load_cifar10_dataset(root=args.data_folder, download=args.download_data)
+         trainX, testX = load_cifar10_dataset(root=args.initial_data_folder, download=args.download_data)
     elif args.initial_dataset == 'cifar-greyscale':
-         trainX, testX = load_cifar10grey_dataset(root=args.data_folder, download=args.download_data)
+         trainX, testX = load_cifar10grey_dataset(root=args.initial_data_folder, download=args.download_data)
     else:
         raise f"unknown dataset: {args.initial_dataset}"
 
@@ -230,7 +232,7 @@ if __name__ == "__main__":
             model = create_openAI_Unet(model_config='cifar')
         diffusion_model = SimpleBrownianBridgeDiffusion(T, model, device, trainY, trainX, deterministic=deterministic)
 
-    # (Sean): UNET for CIFAR-10 grayscale dataset
+    # (Sean): UNET for CIFAR-10 greyscale dataset
     elif args.initial_dataset == 'cifar-greyscale':
         if args.unet == 'berkan':
             print('running cifar simple unet')
