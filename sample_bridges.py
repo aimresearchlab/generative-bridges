@@ -14,6 +14,8 @@ from tqdm import tqdm
 from unet_openai import create_openAI_Unet
 from unet import UNet
 from simple_bridge import SimpleBrownianBridgeDiffusion
+from image2image_bridge import Image2ImageBridgeDiffusion
+from utils import load_cifar10grey_dataset
 
 def save_image_bkp(image, save_path):
     """
@@ -125,7 +127,12 @@ def main(args):
     model.load_state_dict(remove_module_prefix(checkpoint))
 
     # Create diffusion model
-    diffusion_model = SimpleBrownianBridgeDiffusion(args.T, model, 'cuda', trainY=None, deterministic=True)
+    # (Sean): If the image2image argument is True, use Image2ImageBridgeDiffusion as the model
+    if args.image2image == True:
+        trainX = load_cifar10grey_dataset(root=args.trainX_folder, download=True)[0]
+        diffusion_model = Image2ImageBridgeDiffusion(args.T, model, 'cuda', trainY=None, trainX=trainX, deterministic=True)
+    else:
+        diffusion_model = SimpleBrownianBridgeDiffusion(args.T, model, 'cuda', trainY=None, deterministic=True)
 
     # Create output directory if it doesn't exist
     if not os.path.exists(args.imgs_folder):
@@ -176,6 +183,11 @@ if __name__ == "__main__":
     parser.add_argument("--num_samples", type=int, default=100, help="Number of samples to generate")
     parser.add_argument("--n_steps", type=int, default=1000, help="Number of diffusion steps")
     parser.add_argument("--batch_size", type=int, default=128, help="Batch size for sampling")
+
+    # (Sean): New script arguments, default set to True which means it will use image-to-image diffusion
+    # (Sean): Data folder is to allow sampling from CIFAR-10 greyscale dataset instead of starting with random noise
+    parser.add_argument("--image2image", type=bool, default=True, help="Use image-to-image diffusion")
+    parser.add_argument('--trainX_folder', default='./data', type=str, required=False, help='Path to the data folder')
 
     args = parser.parse_args()
     main(args)

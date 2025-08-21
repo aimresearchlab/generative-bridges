@@ -37,7 +37,7 @@ def model_and_diffusion_defaults_cifar10():
     return result
 
 # (Sean Backup Laptop Edit): Added defaults for grayscale CIFAR-10.
-# Changed in_channels to 1, image_size to 32, and out_channels to 3 if learn_sigma is True, else 1.
+# (Sean): Changed in_channels to 3, image_size to 32, and out_channels to 3 if learn_sigma is True, else 3.
 def model_and_diffusion_defaults_cifargreyscale():
     """
     Added defaults for grayscale CIFAR-10.
@@ -45,8 +45,7 @@ def model_and_diffusion_defaults_cifargreyscale():
     result =  dict(
         image_size=32,
         num_channels=64,
-        in_channels=1,
-        out_channels=3, 
+        in_channels=3, 
         num_res_blocks=2,
         num_heads=4,
         num_heads_upsample=-1,
@@ -66,7 +65,7 @@ def model_and_diffusion_defaults_cifargreyscale():
         use_scale_shift_norm=True,
     )
 
-    # result['out_channels'] = 3 if result['learn_sigma'] else 3
+    result['out_channels'] = 3 if result['learn_sigma'] else 3
 
     return result
 

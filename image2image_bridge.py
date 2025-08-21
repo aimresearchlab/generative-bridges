@@ -17,7 +17,7 @@ The code is based on the simple_bridge.py file, with some changes to support an 
 Look for "(Sean)" comments to see the changes made.
 """
 
-class SimpleBrownianBridgeDiffusion:
+class Image2ImageBridgeDiffusion:
 
     # (Sean): Added trainX as input for an initial distribution
     def __init__(self, T: float, model: nn.Module, device: str, trainY: List, trainX: List, deterministic: bool = False, interpolate_size = None):
@@ -50,7 +50,8 @@ class SimpleBrownianBridgeDiffusion:
         # (Sean): sample x from initial distribution 
         # (Sean): Step 1 in 2.2.1
         x = sample_batch(self.trainX, batch_size, self.device, interpolate_size=self.interpolate_size)
-        
+        x = x.repeat(1, 3, 1, 1)
+
         # compute E_t
         # (Sean): Step 2 in 2.2.1
         E = x + (y - x) * t / self.T
@@ -97,9 +98,9 @@ class SimpleBrownianBridgeDiffusion:
 
         # (Sean): Step 2 in 2.2.2
         # (Sean): Changed to sample from trainX for initial distribution
-        x = sample_batch((self.trainX, n_samples, image_channels, img_size[0], img_size[1]), 
-                         device=self.device)
-
+        # x = sample_batch((self.trainX, n_samples, image_channels, img_size[0], img_size[1]), batch_size=1, device=self.device)
+        x = sample_batch(self.trainX, n_samples, self.device)
+        x = x.repeat(1, 3, 1, 1)
         xi_t = x
         #Z_t = x
 
@@ -211,7 +212,7 @@ if __name__ == "__main__":
     checkpoint_steps = (10000 / batch_size) * 64
     
     # (Sean): Made num_batches smaller instead of 40000 so tests can run quicker
-    num_batches = 100
+    num_batches = 10000
     
     """
     Potential explanation for the dimensional error: The diffusion model currently takes in one model at a time,
@@ -220,7 +221,7 @@ if __name__ == "__main__":
     """
 
 
-    # (Sean): Additional parameter (trainX) to SimpleBrownianBridgeDiffusion for initial distribution
+    # (Sean): Additional parameter (trainX) to Image2ImageBridgeDiffusionn for initial distribution
     if args.initial_dataset == 'mnist':
         if args.unet == 'berkan':
             print('running mnist simple unet')
@@ -229,7 +230,7 @@ if __name__ == "__main__":
             print('running mnist openAI unet')
             model = create_openAI_Unet(model_config='mnist')
         print('creating diffusion model')
-        diffusion_model = SimpleBrownianBridgeDiffusion(T, model, device, trainY, trainX, deterministic=deterministic, interpolate_size=32)
+        diffusion_model = Image2ImageBridgeDiffusion(T, model, device, trainY, trainX, deterministic=deterministic, interpolate_size=32)
     elif args.initial_dataset == 'cifar':
         if args.unet == 'berkan':
             print('running cifar simple unet')
@@ -237,7 +238,7 @@ if __name__ == "__main__":
         elif args.unet == 'openAI':
             print('running cifar OpenAI unet')
             model = create_openAI_Unet(model_config='cifar')
-        diffusion_model = SimpleBrownianBridgeDiffusion(T, model, device, trainY, trainX, deterministic=deterministic)
+        diffusion_model = Image2ImageBridgeDiffusion(T, model, device, trainY, trainX, deterministic=deterministic)
 
     # (Sean): UNET for CIFAR-10 greyscale dataset
     elif args.initial_dataset == 'cifar-greyscale':
@@ -247,7 +248,7 @@ if __name__ == "__main__":
         elif args.unet == 'openAI':
             print('running cifar-greyscale OpenAI unet')
             model = create_openAI_Unet(model_config='cifar-greyscale')
-        diffusion_model = SimpleBrownianBridgeDiffusion(T, model, device, trainY, trainX, deterministic=deterministic)
+        diffusion_model = Image2ImageBridgeDiffusion(T, model, device, trainY, trainX, deterministic=deterministic)
     else:
         raise f"unknown dataset: {args.dataset}"
     
