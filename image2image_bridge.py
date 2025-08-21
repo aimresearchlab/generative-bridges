@@ -213,6 +213,13 @@ if __name__ == "__main__":
     # (Sean): Made num_batches smaller instead of 40000 so tests can run quicker
     num_batches = 100
     
+    """
+    Potential explanation for the dimensional error: The diffusion model currently takes in one model at a time,
+    and the model is determined by the dataset. This means that with two datasets e.g. greyscale and cifar, the model
+    used is different. Need to figure out how to get a single model to handle both datasets. 
+    """
+
+
     # (Sean): Additional parameter (trainX) to SimpleBrownianBridgeDiffusion for initial distribution
     if args.initial_dataset == 'mnist':
         if args.unet == 'berkan':
@@ -241,7 +248,6 @@ if __name__ == "__main__":
             print('running cifar-greyscale OpenAI unet')
             model = create_openAI_Unet(model_config='cifar-greyscale')
         diffusion_model = SimpleBrownianBridgeDiffusion(T, model, device, trainY, trainX, deterministic=deterministic)
-    
     else:
         raise f"unknown dataset: {args.dataset}"
     
