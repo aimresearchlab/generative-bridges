@@ -1,7 +1,7 @@
 import argparse
 import os
 from typing import List
-
+import numpy as np
 import matplotlib.pyplot as plt
 import torch
 import torch.nn as nn
@@ -16,6 +16,39 @@ from utils import load_mnist_dataset, load_cifar10_dataset, check_torch_cuda, sa
 The code is based on the simple_bridge.py file, with some changes to support an initial distribution.
 Look for "(Sean)" comments to see the changes made.
 """
+
+def save_image(image, save_path):
+    """
+    Save an image to the specified path, handling both single-channel and multi-channel images.
+    
+    Args:
+    image (np.ndarray): The image to save. Can be single-channel or multi-channel.
+    save_path (str): The full path where the image should be saved.
+    """
+    # Ensure the image is a numpy array
+    image_np = np.asarray(image)
+    
+    # Normalize floating point images to 0-1 range
+    if image_np.dtype in [np.float32, np.float64]:
+        if np.max(image_np) > 1.0 or np.min(image_np) < 0.0:
+            # Normalize to 0-1 range
+            image_np = (image_np - np.min(image_np)) / (np.max(image_np) - np.min(image_np))
+    
+    # Check the number of dimensions
+    if image_np.ndim == 2:
+        # It's a single-channel image (grayscale)
+        plt.imsave(save_path, image_np, cmap='gray')
+    elif image_np.ndim == 3:
+        if image_np.shape[2] == 1:
+            # It's a single-channel image with an extra dimension
+            plt.imsave(save_path, image_np[:,:,0], cmap='gray')
+        elif image_np.shape[2] in [3, 4]:
+            # It's an RGB or RGBA image
+            plt.imsave(save_path, image_np)
+        else:
+            raise ValueError(f"Unexpected number of channels: {image_np.shape[2]}")
+    else:
+        raise ValueError(f"Unexpected number of dimensions: {image_np.ndim}")
 
 class Image2ImageBridgeDiffusion:
 
@@ -82,8 +115,9 @@ class Image2ImageBridgeDiffusion:
 
     @torch.no_grad()
     # (Sean): n_steps here represents sampling steps, I've set it to 10 to reduce computational load
+    # (Sean): Additional parameter (folder) to save initial inputs
     def sampling(self, n_samples=1, image_channels=1, img_size=(32, 32), n_steps=10,
-                 use_tqdm=True):
+                 use_tqdm=True, folder='./imgs'):
         """
         Corollary 2.9 implementation
         """
@@ -92,14 +126,19 @@ class Image2ImageBridgeDiffusion:
         # (Sean): Step 1 in 2.2.2
         t_values = torch.linspace(0, self.T, steps=n_steps + 1, device=self.device) * (self.T - self._EPS) / self.T
 
-        # sample x
+        # Sample x
         # (Sean): Step 4 in 2.2.2
         delta = (self.T - self._EPS) / n_steps
 
         # (Sean): Step 2 in 2.2.2
         # (Sean): Changed to sample from trainX for initial distribution
         # x = sample_batch((self.trainX, n_samples, image_channels, img_size[0], img_size[1]), batch_size=1, device=self.device)
+        # (Sean): Added a saving function to save the initial inputs in order to compare with coloured images
         x = sample_batch(self.trainX, n_samples, self.device)
+        for i in range(x.shape[0]):
+            saved_x = x[i].cpu().permute(1, 2, 0).numpy()
+            save_image(saved_x, os.path.join(folder, f'input_{i}.png'))
+        
         x = x.repeat(1, 3, 1, 1)
         xi_t = x
         #Z_t = x

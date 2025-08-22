@@ -147,7 +147,7 @@ def main(args):
 
     for i in tqdm(range(num_batches + (1 if remaining_samples > 0 else 0)), desc="Generating batches"):
         current_batch_size = batch_size if i < num_batches else remaining_samples
-        batch_samples = diffusion_model.sampling(n_samples=current_batch_size, image_channels=image_channels, img_size=(image_size, image_size), use_tqdm=False, n_steps=args.n_steps)
+        batch_samples = diffusion_model.sampling(n_samples=current_batch_size, image_channels=image_channels, img_size=(image_size, image_size), use_tqdm=False, n_steps=args.n_steps, folder=args.inputX_folder)
         
         for j, sample in enumerate(batch_samples):
             sample_idx = i * batch_size + j
@@ -186,8 +186,11 @@ if __name__ == "__main__":
 
     # (Sean): New script arguments, default set to True which means it will use image-to-image diffusion
     # (Sean): Data folder is to allow sampling from CIFAR-10 greyscale dataset instead of starting with random noise
+    # (Sean): Input folder is to allow saving of initial greyscale images before they are coloured
     parser.add_argument("--image2image", type=bool, default=True, help="Use image-to-image diffusion")
     parser.add_argument('--trainX_folder', default='./data', type=str, required=False, help='Path to the data folder')
+    parser.add_argument('--inputX_folder', default='./data', type=str, required=False, help='Path to the folder for input samples')
+
 
     args = parser.parse_args()
     main(args)
