@@ -131,14 +131,25 @@ class Image2ImageBridgeDiffusion:
         delta = (self.T - self._EPS) / n_steps
 
         # (Sean): Step 2 in 2.2.2
-        # (Sean): Changed to sample from trainX for initial distribution
-        # x = sample_batch((self.trainX, n_samples, image_channels, img_size[0], img_size[1]), batch_size=1, device=self.device)
+        # (Sean): Changed to sample from normal CIFAR then greyscale, this allows saving of both coloured and greyscale input images
         # (Sean): Added a saving function to save the initial inputs in order to compare with coloured images
-        x = sample_batch(self.trainX, n_samples, self.device)
+        coloured_x = sample_batch(self.trainX, n_samples, self.device)
+        for i in range(coloured_x.shape[0]):
+            saved_coloured_x = coloured_x[i].cpu().permute(1, 2, 0).numpy()
+            save_image(saved_coloured_x, os.path.join(folder, f'coloured_input_{i}.png')) # Save coloured input images
+
+        x = torch.mean(coloured_x, dim=1, keepdim=True)  # x is technically sampled from the cifar distribution, but converted to greyscale
+        saved_images = []
         for i in range(x.shape[0]):
             saved_x = x[i].cpu().permute(1, 2, 0).numpy()
-            save_image(saved_x, os.path.join(folder, f'input_{i}.png'))
-        
+            save_image(saved_x, os.path.join(folder, f'input_{i}.png')) # Save greyscale input images
+
+            # (Sean): Save npz of input images, this will be useful for IDDPM image2image sampling
+            saved_images.append(saved_x)
+            saved_images_array = np.array(saved_images, dtype=np.uint8)  # Ensure uint8 format
+            np.savez(os.path.join(folder, 'input_images.npz'), arr_0=saved_images_array)
+            # print(f"Saved {len(saved_images)} images to {os.path.join(folder, 'input_images.npz')}")
+
         x = x.repeat(1, 3, 1, 1)
         xi_t = x
         #Z_t = x

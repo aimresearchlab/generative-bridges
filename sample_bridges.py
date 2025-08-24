@@ -15,7 +15,7 @@ from unet_openai import create_openAI_Unet
 from unet import UNet
 from simple_bridge import SimpleBrownianBridgeDiffusion
 from image2image_bridge import Image2ImageBridgeDiffusion
-from utils import load_cifar10grey_dataset
+from utils import load_cifar10grey_dataset, load_cifar10_dataset
 
 def save_image_bkp(image, save_path):
     """
@@ -129,7 +129,7 @@ def main(args):
     # Create diffusion model
     # (Sean): If the image2image argument is True, use Image2ImageBridgeDiffusion as the model
     if args.image2image == True:
-        trainX = load_cifar10grey_dataset(root=args.trainX_folder, download=True)[0]
+        trainX = load_cifar10_dataset(root=args.trainX_folder, download=True)[0]
         diffusion_model = Image2ImageBridgeDiffusion(args.T, model, 'cuda', trainY=None, trainX=trainX, deterministic=True)
     else:
         diffusion_model = SimpleBrownianBridgeDiffusion(args.T, model, 'cuda', trainY=None, deterministic=True)
