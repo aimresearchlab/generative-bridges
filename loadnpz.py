@@ -2,9 +2,13 @@ import numpy as np
 import os
 from PIL import Image
 
+"""
+This script loads images from a .npz file and saves them as individual images
+"""
+
 # Define paths
-file_path = r'C:\Users\Sean\generative-bridges\improved-diffusion\trained_models\samples_1000x32x32x3.npz'
-output_dir = r'C:\Users\Sean\generative-bridges\improved-diffusion\sampled_images'
+file_path = r'C:\Users\Sean\generative-bridges\improved-diffusion\trained_models\samples_10x32x32x3.npz'
+output_dir = r'C:\Users\Sean\aim-iddpm-img'
 
 # Create output directory if it doesn't exist
 os.makedirs(output_dir, exist_ok=True)

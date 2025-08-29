@@ -134,11 +134,14 @@ class Image2ImageBridgeDiffusion:
         # (Sean): Changed to sample from normal CIFAR then greyscale, this allows saving of both coloured and greyscale input images
         # (Sean): Added a saving function to save the initial inputs in order to compare with coloured images
         coloured_x = sample_batch(self.trainX, n_samples, self.device)
+
         for i in range(coloured_x.shape[0]):
             saved_coloured_x = coloured_x[i].cpu().permute(1, 2, 0).numpy()
             save_image(saved_coloured_x, os.path.join(folder, f'coloured_input_{i}.png')) # Save coloured input images
 
         x = torch.mean(coloured_x, dim=1, keepdim=True)  # x is technically sampled from the cifar distribution, but converted to greyscale
+        x = (x - 0.5) / 0.5
+
         saved_images = []
         for i in range(x.shape[0]):
             saved_x = x[i].cpu().permute(1, 2, 0).numpy()
@@ -262,7 +265,7 @@ if __name__ == "__main__":
     checkpoint_steps = (10000 / batch_size) * 64
     
     # (Sean): Made num_batches smaller instead of 40000 so tests can run quicker
-    num_batches = 10000
+    num_batches = 25000
     
     """
     Potential explanation for the dimensional error: The diffusion model currently takes in one model at a time,

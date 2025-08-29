@@ -129,7 +129,7 @@ def main(args):
     # Create diffusion model
     # (Sean): If the image2image argument is True, use Image2ImageBridgeDiffusion as the model
     if args.image2image == True:
-        trainX = load_cifar10_dataset(root=args.trainX_folder, download=True)[0]
+        trainX = load_cifar10_dataset(root=args.trainX_folder, download=True)[0]    # Set to cifar10grey if you don't want coloured originals
         diffusion_model = Image2ImageBridgeDiffusion(args.T, model, 'cuda', trainY=None, trainX=trainX, deterministic=True)
     else:
         diffusion_model = SimpleBrownianBridgeDiffusion(args.T, model, 'cuda', trainY=None, deterministic=True)
