@@ -185,8 +185,11 @@ def build_unet(dataset: str) -> UNet:
                          channel_mult=(1, 2, 2), num_res_blocks=2,
                          attention_resolutions=(16, 8), num_heads=4, image_size=32)
     elif dataset == "cifar10":
+        # num_res_blocks=3 matches the vendored CIFAR config (52.5M params); with 2
+        # this net is 39.6M and capacity becomes a confound in any comparison
+        # against the original numbers.
         cfg = UNetConfig(in_channels=3, out_channels=3, model_channels=128,
-                         channel_mult=(1, 2, 2, 2), num_res_blocks=2,
+                         channel_mult=(1, 2, 2, 2), num_res_blocks=3,
                          attention_resolutions=(16, 8), num_heads=4, image_size=32)
     else:
         raise ValueError(dataset)
