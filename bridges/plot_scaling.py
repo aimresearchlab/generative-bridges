@@ -48,17 +48,33 @@ def plot(paths, out, title=None):
     for ax, path in zip(axes[0], paths):
         by = load(path)
         ax.set_facecolor(SURFACE)
+        ends = []
         for name in ("bridge", "euler", "euler_det"):        # fixed order, never cycled
             if name not in by:
                 continue
             xs = sorted(by[name])
             ys = [by[name][x] for x in xs]
+            ends.append((ys[-1], name))
             ax.plot(xs, ys, color=SERIES[name], lw=2.0, marker="o", ms=5.5,
                     mec=SURFACE, mew=1.2, label=LABEL[name], zorder=3)
-            # direct label at the right-hand end (relief rule; identity never colour-alone)
-            ax.annotate(name, (xs[-1], ys[-1]), textcoords="offset points",
-                        xytext=(7, 0), va="center", fontsize=8.5,
+
+        # direct labels at the right-hand end, staggered so near-equal ends do not
+        # overprint (relief rule: identity is never carried by colour alone)
+        ends.sort()
+        offsets = {}
+        prev = None
+        for i, (yv, nm) in enumerate(ends):
+            dy = 0
+            if prev is not None and yv / prev < 1.18:
+                dy = offsets[prev_nm] + 10
+            offsets[nm] = dy
+            prev, prev_nm = yv, nm
+        for yv, nm in ends:
+            xs = sorted(by[nm])
+            ax.annotate(nm, (xs[-1], yv), textcoords="offset points",
+                        xytext=(8, offsets[nm]), va="center", fontsize=8.5,
                         color=INK_SECONDARY, zorder=4)
+
         ax.set_xscale("log"); ax.set_yscale("log")
         # explicit ticks at the sampled step counts; log minor labels collide badly
         allx = sorted({k for v in by.values() for k in v})
