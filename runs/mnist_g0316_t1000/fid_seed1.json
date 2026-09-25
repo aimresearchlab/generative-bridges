@@ -1,0 +1,110 @@
+[
+  {
+    "sampler": "bridge",
+    "n_steps": 10,
+    "nfe": 10,
+    "fid_train": 5.0716775527920674,
+    "fid_test": 5.798996455240541,
+    "gen_seconds": 10.884193181991577,
+    "imgs_per_s": 459.38177652641644,
+    "n_samples": 5000,
+    "eta": 1.0,
+    "ckpt_step": 40000
+  },
+  {
+    "sampler": "euler",
+    "n_steps": 10,
+    "nfe": 10,
+    "fid_train": 4.369519542861525,
+    "fid_test": 5.047219291119461,
+    "gen_seconds": 9.886910200119019,
+    "imgs_per_s": 505.71916794994354,
+    "n_samples": 5000,
+    "eta": 1.0,
+    "ckpt_step": 40000
+  },
+  {
+    "sampler": "euler_det",
+    "n_steps": 10,
+    "nfe": 10,
+    "fid_train": 6.5656395973340125,
+    "fid_test": 7.342263000443523,
+    "gen_seconds": 9.892790079116821,
+    "imgs_per_s": 505.4185886906412,
+    "n_samples": 5000,
+    "eta": 1.0,
+    "ckpt_step": 40000
+  },
+  {
+    "sampler": "bridge",
+    "n_steps": 50,
+    "nfe": 50,
+    "fid_train": 2.5210465842154406,
+    "fid_test": 3.18717298821295,
+    "gen_seconds": 44.93315505981445,
+    "imgs_per_s": 111.27640588211673,
+    "n_samples": 5000,
+    "eta": 1.0,
+    "ckpt_step": 40000
+  },
+  {
+    "sampler": "euler",
+    "n_steps": 50,
+    "nfe": 50,
+    "fid_train": 2.3538250223307386,
+    "fid_test": 2.995894422534178,
+    "gen_seconds": 45.81574320793152,
+    "imgs_per_s": 109.13279257105691,
+    "n_samples": 5000,
+    "eta": 1.0,
+    "ckpt_step": 40000
+  },
+  {
+    "sampler": "euler_det",
+    "n_steps": 50,
+    "nfe": 50,
+    "fid_train": 4.309268422812806,
+    "fid_test": 4.948407679356507,
+    "gen_seconds": 45.90309453010559,
+    "imgs_per_s": 108.92511825582358,
+    "n_samples": 5000,
+    "eta": 1.0,
+    "ckpt_step": 40000
+  },
+  {
+    "sampler": "bridge",
+    "n_steps": 200,
+    "nfe": 200,
+    "fid_train": 2.167380962894299,
+    "fid_test": 2.7998659223972027,
+    "gen_seconds": 180.221346616745,
+    "imgs_per_s": 27.7436613024144,
+    "n_samples": 5000,
+    "eta": 1.0,
+    "ckpt_step": 40000
+  },
+  {
+    "sampler": "euler",
+    "n_steps": 200,
+    "nfe": 200,
+    "fid_train": 2.194547318930404,
+    "fid_test": 2.839885471831394,
+    "gen_seconds": 180.8388156890869,
+    "imgs_per_s": 27.64893134777223,
+    "n_samples": 5000,
+    "eta": 1.0,
+    "ckpt_step": 40000
+  },
+  {
+    "sampler": "euler_det",
+    "n_steps": 200,
+    "nfe": 200,
+    "fid_train": 3.808745841046914,
+    "fid_test": 4.448116597901134,
+    "gen_seconds": 180.56516480445862,
+    "imgs_per_s": 27.69083397351147,
+    "n_samples": 5000,
+    "eta": 1.0,
+    "ckpt_step": 40000
+  }
+]
