@@ -66,6 +66,7 @@ def main():
     p.add_argument("--seed", type=int, default=0)
     p.add_argument("--raw_weights", action="store_true", help="use non-EMA weights")
     p.add_argument("--save_grid", action="store_true")
+    p.add_argument("--compile", action="store_true")
     args = p.parse_args()
 
     device = "cuda"
@@ -75,6 +76,8 @@ def main():
     bridge = GaussianBridge(BridgeConfig(gamma=targs["gamma"], t_scale=targs["t_scale"]))
     print(f"loaded {args.ckpt} (step {step}, dataset {dataset}, gamma {targs['gamma']:.4f}, "
           f"t_scale {targs['t_scale']})", flush=True)
+    if args.compile:
+        model = torch.compile(model)
 
     stats = InceptionStats(device)
     mu_tr, sig_tr = real_stats(dataset, "train", device, stats=stats)
