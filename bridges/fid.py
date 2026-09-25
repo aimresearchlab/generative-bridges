@@ -27,27 +27,30 @@ from torchmetrics.image.fid import FrechetInceptionDistance, NoTrainInceptionV3
 from . import data as D
 
 
-def _sqrtm_newton(a: np.ndarray, iters: int = 100, eps: float = 1e-12) -> np.ndarray:
-    """Matrix square root by Denman-Beavers iteration (scipy-free, float64)."""
-    norm = np.linalg.norm(a)
-    y = a / norm
-    z = np.eye(a.shape[0], dtype=np.float64)
-    for _ in range(iters):
-        y_next = 0.5 * (y + np.linalg.inv(z))
-        z = 0.5 * (z + np.linalg.inv(y))
-        if np.linalg.norm(y_next - y) < eps * np.linalg.norm(y):
-            y = y_next
-            break
-        y = y_next
-    return y * np.sqrt(norm)
+def _psd_sqrt(a: np.ndarray, eps: float = 0.0) -> np.ndarray:
+    """Symmetric PSD square root via eigendecomposition, negatives clamped."""
+    w, v = np.linalg.eigh((a + a.T) / 2.0)
+    w = np.clip(w, eps, None)
+    return (v * np.sqrt(w)) @ v.T
 
 
 def frechet_distance(mu1, s1, mu2, s2) -> float:
+    """||mu1-mu2||^2 + tr(S1) + tr(S2) - 2 tr((S1 S2)^{1/2}).
+
+    tr((S1 S2)^{1/2}) is evaluated as sum_i sqrt(lambda_i(M)) with
+    M = S1^{1/2} S2 S1^{1/2}, which is symmetric PSD and similar to S1 S2.  This
+    is stable for rank-deficient or ill-conditioned covariances -- the case
+    whenever the sample count is not comfortably above the 2048 feature
+    dimension.  A Denman-Beavers iteration inverts its iterates and diverges
+    there, which can return a negative "distance".
+    """
+    mu1, mu2 = np.asarray(mu1, dtype=np.float64), np.asarray(mu2, dtype=np.float64)
+    s1, s2 = np.asarray(s1, dtype=np.float64), np.asarray(s2, dtype=np.float64)
+    a = _psd_sqrt(s1)
+    m = a @ s2 @ a
+    lam = np.clip(np.linalg.eigvalsh((m + m.T) / 2.0), 0.0, None)
     diff = mu1 - mu2
-    covmean = _sqrtm_newton(s1 @ s2)
-    if np.iscomplexobj(covmean):
-        covmean = covmean.real
-    return float(diff @ diff + np.trace(s1) + np.trace(s2) - 2 * np.trace(covmean))
+    return float(diff @ diff + np.trace(s1) + np.trace(s2) - 2.0 * np.sqrt(lam).sum())
 
 
 class InceptionStats:
