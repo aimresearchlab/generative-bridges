@@ -54,12 +54,20 @@ def plot(paths, out, title=None):
             xs = sorted(by[name])
             ys = [by[name][x] for x in xs]
             ax.plot(xs, ys, color=SERIES[name], lw=2.0, marker="o", ms=5.5,
-                    mec=SURFACE, mew=1.2, label=LABEL[name], zorder=3, clip_on=False)
+                    mec=SURFACE, mew=1.2, label=LABEL[name], zorder=3)
             # direct label at the right-hand end (relief rule; identity never colour-alone)
             ax.annotate(name, (xs[-1], ys[-1]), textcoords="offset points",
                         xytext=(7, 0), va="center", fontsize=8.5,
                         color=INK_SECONDARY, zorder=4)
         ax.set_xscale("log"); ax.set_yscale("log")
+        # explicit ticks at the sampled step counts; log minor labels collide badly
+        allx = sorted({k for v in by.values() for k in v})
+        ax.set_xticks(allx)
+        ax.set_xticklabels([str(k) for k in allx], fontsize=8.5)
+        ax.xaxis.set_minor_formatter(matplotlib.ticker.NullFormatter())
+        ax.yaxis.set_minor_formatter(matplotlib.ticker.NullFormatter())
+        ax.yaxis.set_major_formatter(matplotlib.ticker.ScalarFormatter())
+        ax.yaxis.set_major_locator(matplotlib.ticker.LogLocator(numticks=8))
         ax.set_xlabel("sampling steps  (= network evaluations)", fontsize=9.5,
                       color=INK_SECONDARY)
         ax.set_ylabel("FID vs train split  (lower is better)", fontsize=9.5,
@@ -73,14 +81,16 @@ def plot(paths, out, title=None):
         for s in ("left", "bottom"):
             ax.spines[s].set_color(INK_MUTED); ax.spines[s].set_linewidth(0.8)
         ax.tick_params(colors=INK_SECONDARY, labelsize=8.5)
-        leg = ax.legend(frameon=False, fontsize=8.5, loc="upper right")
+        # legend lower-left, direct labels right: they cannot collide
+        leg = ax.legend(frameon=False, fontsize=8.5, loc="lower left")
         for t in leg.get_texts():
             t.set_color(INK_SECONDARY)       # text wears ink tokens, not series colour
-        ax.margins(x=0.13)
+        ax.margins(x=0.20)
 
+    fig.tight_layout()
     if title:
-        fig.suptitle(title, fontsize=12, color=INK_PRIMARY, x=0.005, ha="left", y=0.995)
-    fig.tight_layout(rect=(0, 0, 1, 0.96 if title else 1.0))
+        fig.subplots_adjust(top=0.86)
+        fig.suptitle(title, fontsize=12, color=INK_PRIMARY, x=0.012, ha="left", y=0.97)
     fig.savefig(out, dpi=170, facecolor=SURFACE)
     print(f"wrote {out}")
 
