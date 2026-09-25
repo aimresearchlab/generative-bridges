@@ -286,5 +286,41 @@
     "n_samples": 5000,
     "eta": 1.0,
     "ckpt_step": 40000
+  },
+  {
+    "sampler": "bridge",
+    "n_steps": 1000,
+    "nfe": 1000,
+    "fid_train": 2.5878770877863815,
+    "fid_test": 3.119834749041928,
+    "gen_seconds": 908.4499571323395,
+    "imgs_per_s": 5.503880495281503,
+    "n_samples": 5000,
+    "eta": 1.0,
+    "ckpt_step": 40000
+  },
+  {
+    "sampler": "euler",
+    "n_steps": 1000,
+    "nfe": 1000,
+    "fid_train": 2.6432932159332267,
+    "fid_test": 3.1378198275825753,
+    "gen_seconds": 900.5744917392731,
+    "imgs_per_s": 5.552011572461414,
+    "n_samples": 5000,
+    "eta": 1.0,
+    "ckpt_step": 40000
+  },
+  {
+    "sampler": "euler_det",
+    "n_steps": 1000,
+    "nfe": 1000,
+    "fid_train": 2.9697637875061673,
+    "fid_test": 3.540593377285944,
+    "gen_seconds": 902.2549800872803,
+    "imgs_per_s": 5.541670714321047,
+    "n_samples": 5000,
+    "eta": 1.0,
+    "ckpt_step": 40000
   }
 ]
