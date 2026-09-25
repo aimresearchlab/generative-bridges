@@ -34,6 +34,14 @@ def load_model(ckpt_path: str, device, use_ema: bool = True):
     return model.to(device).eval(), args, ck["step"]
 
 
+def make_scheme(targs):
+    """Return (scheme, samplers) for either a bridge or a flow-matching checkpoint."""
+    if targs.get("method") == "flow_matching":
+        from .flowmatch import FlowMatching
+        return FlowMatching(t_scale=targs["t_scale"]), ["flow_euler"]
+    return GaussianBridge(BridgeConfig(gamma=targs["gamma"], t_scale=targs["t_scale"])), None
+
+
 @torch.no_grad()
 def generate(model, bridge, n: int, dataset: str, device, n_steps: int,
              sampler: str, eta: float, batch_size: int, seed: int,
@@ -46,9 +54,13 @@ def generate(model, bridge, n: int, dataset: str, device, n_steps: int,
         b = min(batch_size, n - done)
         x0 = torch.randn(b, c, D.IMAGE_SIZE, D.IMAGE_SIZE, device=device, generator=g)
         with torch.autocast("cuda", dtype=torch.bfloat16, enabled=amp):
-            s = bridge.sample(model, (b, c, D.IMAGE_SIZE, D.IMAGE_SIZE), device,
-                              n_steps=n_steps, sampler=sampler, eta=eta,
-                              generator=g, x_init=x0)
+            if sampler == "flow_euler":
+                s = bridge.sample(model, (b, c, D.IMAGE_SIZE, D.IMAGE_SIZE), device,
+                                  n_steps=n_steps, generator=g, x_init=x0)
+            else:
+                s = bridge.sample(model, (b, c, D.IMAGE_SIZE, D.IMAGE_SIZE), device,
+                                  n_steps=n_steps, sampler=sampler, eta=eta,
+                                  generator=g, x_init=x0)
         out[done:done + b] = s.float().cpu()
         done += b
     return out
@@ -73,8 +85,11 @@ def main():
     torch.backends.cuda.matmul.allow_tf32 = True
     model, targs, step = load_model(args.ckpt, device, use_ema=not args.raw_weights)
     dataset = targs["dataset"]
-    bridge = GaussianBridge(BridgeConfig(gamma=targs["gamma"], t_scale=targs["t_scale"]))
-    print(f"loaded {args.ckpt} (step {step}, dataset {dataset}, gamma {targs['gamma']:.4f}, "
+    bridge, forced = make_scheme(targs)
+    if forced is not None:
+        args.samplers = forced
+    print(f"loaded {args.ckpt} (step {step}, dataset {dataset}, "
+          f"method {targs.get('method', 'bridge')}, gamma {targs.get('gamma', 0.0):.4f}, "
           f"t_scale {targs['t_scale']})", flush=True)
     if args.compile:
         model = torch.compile(model)
@@ -91,7 +106,9 @@ def main():
         results = json.load(open(out_path))
     done = {(r["sampler"], r["n_steps"]) for r in results}
 
-    for sampler, n_steps in itertools.product(args.samplers, sorted(args.steps)):
+    # step-major: all samplers at each step count, cheapest first, so a usable
+    # comparison exists long before the expensive tail finishes
+    for n_steps, sampler in itertools.product(sorted(args.steps), args.samplers):
         if (sampler, n_steps) in done:
             continue
         t0 = time.time()
