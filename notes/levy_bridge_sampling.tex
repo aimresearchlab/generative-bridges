@@ -1,0 +1,369 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage{amsmath,amssymb,amsthm,amsfonts}
+\usepackage[margin=1in]{geometry}
+\usepackage{booktabs}
+\usepackage{hyperref}
+
+\newtheorem{prop}{Proposition}
+\newtheorem{lem}[prop]{Lemma}
+\newtheorem{coro}[prop]{Corollary}
+\newtheorem{rem}[prop]{Remark}
+
+\def\R{\mathbb{R}}
+\def\N{\mathbb{N}}
+\def\E{\mathbb{E}}
+\def\P{\mathbb{P}}
+\def\T{\mathcal{T}}
+\def\d{\,\mathrm{d}}
+\def\xib{\boldsymbol{\xi}}
+\def\Psib{\boldsymbol{\Psi}}
+\def\Phib{\boldsymbol{\Phi}}
+\def\Yb{\boldsymbol{Y}}
+\def\Zb{\mathbf{Z}}
+\def\Mb{\mathbf{M}}
+
+\title{Exact simulation of L\'evy random-bridges without the martingale $\{\Mb_t\}$\\
+\large Gamma and Poisson cases, with a proposed head-to-head experiment}
+\author{Working note for internal review}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Section 4 of the manuscript derives the non-anticipative representation
+$\xib^{\boldsymbol{x}}_t \overset{\text{law}}{=} \int_0^t \frac{\E[\Yb\mid\xib^{\boldsymbol{x}}_s]-\xib^{\boldsymbol{x}}_s}{T-s}\d s + \Mb_t$
+and states that a practical algorithm awaits an explicit form for the martingale
+$\{\Mb_t\}$. This note observes that the simulation does not require $\{\Mb_t\}$ at
+all. Sampling the \emph{bridge transition kernel} $\nu_{s,t,T}$ --- already derived in
+the manuscript --- advances the state exactly, with no time-discretisation error and
+no terminal singularity. For the gamma process the kernel is a scaled Beta law; for
+the Poisson process it is a Binomial thinning. Both are elementary to simulate.
+This converts Section 4 from a theoretical outlook into a working algorithm, and
+unifies the Gaussian, gamma and Poisson cases under one sampler.
+\textbf{Please check Propositions 2 and 3; the algebra is elementary but I would like
+it verified independently before we build on it.}
+\end{abstract}
+
+\section{Setting and the point of departure}
+
+Let $\{\Zb_t\}_{t\in\T}$, $\T=[0,T]$, be a L\'evy process with marginal law
+$f_u$, and let $\{\xib^{\boldsymbol{x}}_t\}$ be the $\Phib$-initialised L\'evy
+random-bridge to $\Psib$ with $\xib^{\boldsymbol{x}}_0=\boldsymbol{x}$. Assume
+coordinate-wise independence throughout, so that all statements below are
+one-dimensional and apply coordinate-by-coordinate.
+
+The manuscript establishes (Cor.~4.4 and Sec.~4.1) that for
+$0\le s<t<T$ the conditional point-to-point bridge
+$\xib^{\boldsymbol{x},\boldsymbol{y}}$ has transition density
+\begin{equation}
+\label{eq:kernel}
+\P\big(\xib^{\boldsymbol{x},\boldsymbol{y}}_t\in\d z \,\big|\, \xib^{\boldsymbol{x},\boldsymbol{y}}_s=r\big)
+\;=\;\frac{f_{t-s}(z-r)\,f_{T-t}(y-z)}{f_{T-s}(y-r)}\,\d z
+\;\triangleq\;\nu_{s,t,T}(r,z,y)\,\d z .
+\end{equation}
+
+\begin{rem}[The observation]
+\label{rem:main}
+The representation involving $\{\Mb_t\}$ is the canonical decomposition of the
+bridge into a drift plus a compensated remainder. It is the natural object if one
+intends to \emph{integrate an SDE} by a time-stepping scheme, because $\Mb_t$ is
+precisely what such a scheme must inject at each step. It is not needed if one
+instead \emph{samples \eqref{eq:kernel} directly}. Since \eqref{eq:kernel} is the
+exact law of $\xib_t$ given $\xib_s$ and the endpoint, drawing from it advances the
+process with no discretisation error whatsoever, for any step size. The martingale
+is an artefact of the integrator, not of the process.
+\end{rem}
+
+In the generative setting the endpoint $\boldsymbol{y}$ is unknown and is replaced by
+the network's estimate $\hat{\boldsymbol{y}}=f^*(\xib_s,s;\Theta^*)\approx
+\E[\Yb\mid\xib_s]$. This is the same substitution that DDPM/DDIM ancestral sampling
+makes, and it is discussed in Section~\ref{sec:caveat}.
+
+Throughout we use normalised time $u=t/T\in[0,1]$ and write the horizon as $1$.
+
+\section{Gamma random-bridges}
+
+Let $\{Z_t\}$ be a gamma subordinator with $\E[Z_t]=t$ and shape rate $\kappa>0$, so
+that increments satisfy $Z_t-Z_s\sim\mathrm{Gamma}\big(\kappa(t-s),\kappa\big)$ with
+density
+\begin{equation}
+f_u(w)=\frac{\kappa^{\kappa u}}{\Gamma(\kappa u)}\,w^{\kappa u-1}e^{-\kappa w},
+\qquad w>0 .
+\end{equation}
+
+\begin{prop}[Gamma bridge transition]
+\label{prop:gamma}
+For $0\le s<t<1$ and $r<y$,
+\begin{equation}
+\xi_t \;=\; \xi_s + (y-\xi_s)\,\beta,
+\qquad
+\beta\sim\mathrm{Beta}\big(\kappa(t-s),\,\kappa(1-t)\big),
+\end{equation}
+independently of $\xi_s$. The rate parameter $\kappa$ enters only through the Beta
+shape parameters; the scale of the gamma process cancels identically.
+\end{prop}
+
+\begin{proof}
+Put $a=\kappa(t-s)$, $b=\kappa(1-t)$, so $a+b=\kappa(1-s)$. Substituting the gamma
+densities into \eqref{eq:kernel},
+\begin{align}
+\nu_{s,t,1}(r,z,y)
+&=\frac{\dfrac{\kappa^{a}}{\Gamma(a)}(z-r)^{a-1}e^{-\kappa(z-r)}
+\cdot \dfrac{\kappa^{b}}{\Gamma(b)}(y-z)^{b-1}e^{-\kappa(y-z)}}
+{\dfrac{\kappa^{a+b}}{\Gamma(a+b)}(y-r)^{a+b-1}e^{-\kappa(y-r)}} \notag\\[4pt]
+&=\frac{\Gamma(a+b)}{\Gamma(a)\Gamma(b)}\cdot
+\frac{(z-r)^{a-1}(y-z)^{b-1}}{(y-r)^{a+b-1}},
+\end{align}
+the exponential factors cancelling exactly because $(z-r)+(y-z)=(y-r)$, and the
+powers of $\kappa$ cancelling because $a+b$ is the total shape. Substituting
+$z=r+(y-r)\beta$ with $\d z=(y-r)\d\beta$ and $\beta\in(0,1)$,
+\begin{equation}
+\nu\,\d z=\frac{\Gamma(a+b)}{\Gamma(a)\Gamma(b)}\,
+\beta^{a-1}(1-\beta)^{b-1}\,\d\beta ,
+\end{equation}
+which is the $\mathrm{Beta}(a,b)$ density.
+\end{proof}
+
+\begin{coro}[Training marginal]
+With $\xi_0=x$ and terminal $y$, the marginal used for training is
+$\xi_s = x+(y-x)\,\beta$, $\beta\sim\mathrm{Beta}(\kappa s,\kappa(1-s))$.
+\end{coro}
+
+\begin{coro}[Moments]
+\label{coro:gammamoments}
+$\E[\xi_t\mid \xi_s,y]=\xi_s+(y-\xi_s)\frac{t-s}{1-s}$ and
+\begin{equation}
+\mathrm{Var}[\xi_t\mid \xi_s,y]=(y-\xi_s)^2\,
+\frac{(t-s)(1-t)}{(1-s)^2\big(\kappa(1-s)+1\big)} .
+\end{equation}
+\end{coro}
+
+The conditional mean is \emph{identical} to the Gaussian case and reproduces the
+linear interpolation property of manuscript eq.~(4.x); only the fluctuation law
+differs. As $\kappa\to\infty$ the variance vanishes and the bridge degenerates to
+the deterministic linear interpolant.
+
+\begin{rem}[Support]
+A gamma subordinator is non-decreasing, so the construction requires
+$\xi_s<y$ coordinate-wise. The gamma bridge is therefore a transport between
+\emph{ordered} laws, and its paths remain in $[\xi_s,y]$ almost surely. This is the
+order-preserving regime motivated in the Introduction of the manuscript.
+\end{rem}
+
+\section{Poisson random-bridges}
+
+Let $\{Z_t\}$ be a Poisson process of rate $\lambda$, so
+$Z_t-Z_s\sim\mathrm{Poisson}(\lambda(t-s))$ with mass function
+$f_u(k)=e^{-\lambda u}(\lambda u)^k/k!$, $k\in\N_0$.
+
+\begin{prop}[Poisson bridge transition]
+\label{prop:poisson}
+For $0\le s<t<1$ and integers $r\le y$, writing $m=y-r$,
+\begin{equation}
+\xi_t \;=\; \xi_s + \mathrm{Binomial}\!\left(y-\xi_s,\ \frac{t-s}{1-s}\right).
+\end{equation}
+The rate $\lambda$ cancels identically.
+\end{prop}
+
+\begin{proof}
+With $j=z-r$ and $m=y-r$, the discrete analogue of \eqref{eq:kernel} gives
+\begin{align}
+\P(\xi_t=z\mid \xi_s=r, Y=y)
+&=\frac{e^{-\lambda(t-s)}\frac{(\lambda(t-s))^{j}}{j!}\;
+        e^{-\lambda(1-t)}\frac{(\lambda(1-t))^{m-j}}{(m-j)!}}
+       {e^{-\lambda(1-s)}\frac{(\lambda(1-s))^{m}}{m!}} \notag\\[4pt]
+&=\binom{m}{j}\frac{(t-s)^{j}(1-t)^{m-j}}{(1-s)^{m}}
+\;=\;\binom{m}{j}p^{j}(1-p)^{m-j},
+\end{align}
+with $p=\frac{t-s}{1-s}$, since the exponentials combine as
+$e^{-\lambda(t-s)}e^{-\lambda(1-t)}=e^{-\lambda(1-s)}$ and the powers of $\lambda$
+cancel as $\lambda^{j}\lambda^{m-j}=\lambda^{m}$.
+\end{proof}
+
+\begin{coro}
+Training marginal: $\xi_s=x+\mathrm{Binomial}(y-x,\,s)$. \\
+Moments: $\E[\xi_t\mid\xi_s,y]=\xi_s+(y-\xi_s)\frac{t-s}{1-s}$ and
+$\mathrm{Var}[\xi_t\mid\xi_s,y]=(y-\xi_s)\frac{(t-s)(1-t)}{(1-s)^2}$.
+\end{coro}
+
+Again the conditional mean is the common linear interpolant. The Poisson bridge is
+the classical binomial thinning; the process remains on the integer lattice at every
+step, by construction and not by rounding.
+
+\section{The unified sampler}
+
+Writing $\hat y = f^*(\xi_s,s;\Theta^*)$ for the network's endpoint estimate, all
+three cases share the update
+\begin{equation}
+\label{eq:unified}
+\xi_u \;=\; \underbrace{\xi_s+(\hat y-\xi_s)\tfrac{u-s}{1-s}}_{\text{common drift}}
+\;+\;\underbrace{\text{(driver-specific fluctuation)}},
+\end{equation}
+with the fluctuation given in Table~\ref{tab:unified}. In every case the fluctuation
+degenerates as $u\to1$ and the scheme lands on $\hat y$ exactly, so no boundary
+offset $\epsilon$ and no $1/(T-t)$ singularity arise.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{llll}
+\toprule
+Driver & Exact transition $\xi_s\to\xi_u$ & Support & Parameter \\
+\midrule
+Brownian $\sigma W$ &
+$\mathcal{N}\!\big(\text{drift},\ \gamma^2\frac{(u-s)(1-u)}{1-s}\big)$ &
+$\R$ & $\gamma^2=\sigma^2T$ \\[3pt]
+Gamma &
+$\xi_s+(\hat y-\xi_s)\,\mathrm{Beta}\big(\kappa(u-s),\kappa(1-u)\big)$ &
+$[\xi_s,\hat y]$ & $\kappa$ \\[3pt]
+Poisson &
+$\xi_s+\mathrm{Bin}\big(\hat y-\xi_s,\ \tfrac{u-s}{1-s}\big)$ &
+$\{\xi_s,\dots,\hat y\}\subset\N_0$ & --- \\
+\bottomrule
+\end{tabular}
+\caption{One algorithm, three drivers. The drift is common; only the fluctuation law
+changes. Training samples the corresponding marginal from $(x,y)$ in one shot.}
+\label{tab:unified}
+\end{table}
+
+\begin{rem}[Gaussian case, for completeness]
+For $\Zb_t=\sigma\mathbf{W}_t$ the same substitution into \eqref{eq:kernel} gives the
+Brownian bridge on $[s,1]$ pinned at $(s,\xi_s)$ and $(1,\hat y)$, i.e.\ the first row
+of Table~\ref{tab:unified}. This has been implemented and verified numerically: on a
+one-dimensional problem with $\E[Y\mid\xi_s]$ available in closed form, it attains the
+Monte-Carlo floor in $1$-Wasserstein distance, whereas the deterministic Euler map
+plateaus at $6.9\times$ that floor.
+\end{rem}
+
+\section{Caveat: the point-mass substitution}
+\label{sec:caveat}
+
+The exactness in Propositions~\ref{prop:gamma} and \ref{prop:poisson} is exactness
+\emph{given the endpoint}. In generation we replace the posterior
+$\pi_s(\d y)=\P(\Yb\in\d y\mid\xib_s)$ by a point mass at its mean $\hat y$. The
+sampler is therefore exact in the SDE-discretisation sense and approximate in the
+posterior sense, under-dispersing by $\mathrm{Var}[\Yb\mid\xib_s]$ --- exactly the
+quantity Prop.~2.13 of the manuscript shows to be a Loewner-order supermartingale
+vanishing at $T$. Two remarks:
+\begin{enumerate}
+\item This is the same approximation DDPM and DDIM make, so it is not a new
+weakness relative to the comparison set.
+\item It is removable in principle: a second network head estimating
+$\mathrm{Var}[\Yb\mid\xib_s]$ would allow the dropped dispersion to be reinstated.
+Prop.~2.13 supplies the theoretical object; whether this helps empirically is open.
+\end{enumerate}
+A further practical point for the Poisson case: $\hat y$ is real-valued while
+$\mathrm{Bin}(\cdot)$ requires an integer count, so $\hat y-\xi_s$ must be rounded or
+the head must emit an integer-valued estimate. This is the one place rounding
+re-enters and it deserves care.
+
+\section{Proposed head-to-head experiment}
+
+The framework's generality is currently asserted rather than demonstrated, which is
+the substance of reviewer point 7. The generality cannot win on MNIST or CIFAR-10:
+those are unconstrained real-valued supports, where the Brownian driver is the
+correct choice and the framework can at best tie a well-tuned flow-matching or
+diffusion model. It can only win where the Gaussian case is \emph{structurally}
+wrong.
+
+\paragraph{Claim to target.}
+\emph{On count-valued data, a Poisson random-bridge generates on the integer lattice
+exactly, at every sampling step, whereas Gaussian diffusion and flow matching must
+model a continuous relaxation and round --- and the rounding costs measurably more
+at low NFE.}
+
+\paragraph{Design.} A single controlled comparison, all arms sharing architecture,
+optimiser, EMA, batch size, training steps and evaluation code; only the transport
+changes.
+\begin{enumerate}
+\item \textbf{Poisson bridge} (ours, Prop.~\ref{prop:poisson}).
+\item \textbf{Gaussian bridge} (ours, wrong driver) --- the internal ablation that
+isolates the driving process from everything else in the framework.
+\item \textbf{Flow matching} with linear path, then rounding --- the modern external
+baseline.
+\item \textbf{Gaussian diffusion} (DDPM) on the relaxation, then rounding.
+\end{enumerate}
+
+\paragraph{Data.} Two tiers.
+\emph{(i) Fast and self-contained:} photon-limited images. Take MNIST/CIFAR-10
+intensities, fix a mean photon budget (e.g.\ $10$ counts per pixel) and draw Poisson
+counts; the task is to generate realistic count images. This is cheap, reproducible
+and requires no new data pipeline.
+\emph{(ii) Real application:} single-cell RNA-seq count matrices (e.g.\ 10x PBMC).
+Counts here are integer, sparse and over-dispersed, and Poisson/negative-binomial is
+the \emph{domain-canonical} noise model --- so the Poisson driver is the principled
+choice rather than an opportunistic one. Generative modelling of scRNA-seq is an
+active area with established metrics.
+
+\paragraph{Metrics.}
+\begin{enumerate}
+\item \textbf{Support violation rate}: fraction of generated entries outside
+$\N_0$ before repair. Ours is identically zero \emph{by construction}; every baseline
+is positive. This is structural, not a tuning artefact.
+\item \textbf{Distributional fidelity after the baselines' repair step}: FID for
+images; for scRNA-seq the standard battery (marginal count histograms, mean--variance
+relation, sparsity/zero-inflation rate, nearest-neighbour overlap).
+\item \textbf{Quality versus NFE}, since the claimed advantage is in the low-step
+regime, reported against wall-clock as well as step count.
+\end{enumerate}
+
+\paragraph{Honest risks.} Two, which we should confront rather than discover in
+review. First, constraint-respecting continuous methods exist --- Dirichlet and
+simplex flow matching, and discrete diffusion (D3PM, SEDD) --- and a credible claim
+must include at least one of them, not only vanilla flow matching. Second, if the
+rounding penalty turns out to be small, the support-violation argument is
+technically correct but uninteresting; we should measure that penalty early and drop
+the line of attack if it is negligible.
+
+\section{Numerical verification}
+
+Both propositions were checked against the defining construction --- simulate the
+driving process's independent increments, condition on the total, and compare the
+conditional law of the first increment with the claimed law. The identities under
+test are not used to generate the data. Script: \texttt{notes/verify\_derivations.py},
+$4\times10^6$ draws per cell, float64.
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{llrrrrr}
+\toprule
+& $(\kappa\ \text{or}\ \lambda,\ s,\ t)$ & discrepancy & MC floor & mean & $\frac{t-s}{1-s}$ & var vs theory \\
+\midrule
+Gamma & $(3,\ 0.5,\ 0.9)$   & KS $0.00063$ & $0.00091$ & $0.79985$ & $0.80000$ & $0.064017 / 0.064000$ \\
+Gamma & $(20,\ 0.2,\ 0.5)$  & KS $0.00056$ & $0.00098$ & $0.37499$ & $0.37500$ & $0.013788 / 0.013787$ \\
+Gamma & $(20,\ 0.9,\ 0.95)$ & KS $0.00120$ & $0.00109$ & $0.49969$ & $0.50000$ & $0.083338 / 0.083333$ \\
+Poisson & $(7,\ 0.5,\ 0.9)$ & TVD $0.00054$ & --- & $3.1995$ & $3.2000$ & $0.6399 / 0.6400$ \\
+Poisson & $(30,\ 0.2,\ 0.5)$& TVD $0.00255$ & --- & $8.9997$ & $9.0000$ & $5.6107 / 5.6250$ \\
+\bottomrule
+\end{tabular}
+\caption{Representative cells; all eight gamma and eight Poisson cells tested agree
+with theory at the Monte-Carlo floor. The column $\frac{t-s}{1-s}$ confirms the
+common drift of \eqref{eq:unified} independently in both families.}
+\end{table}
+
+\begin{rem}[Implementation caveat, near-terminal gamma]
+When $\kappa(1-t)\ll1$ the Beta law concentrates so sharply at $1$ that
+$(\xi_t-\xi_s)/(y-\xi_s)$ rounds to exactly $1$ in floating point --- at $\kappa=3$,
+$t=0.999$ this happens in $89.9\%$ of draws. The behaviour is correct (the sampler
+lands on the endpoint) but an implementation should special-case the final step
+rather than rely on the rounding, as the Gaussian implementation already does.
+\end{rem}
+
+\section{Summary of what needs checking}
+
+\begin{enumerate}
+\item Proposition~\ref{prop:gamma}: the Beta identity, in particular the claim that
+the exponential and $\kappa$ factors cancel identically. (Verified numerically; the
+algebra still wants a second pair of eyes.)
+\item Proposition~\ref{prop:poisson}: the Binomial identity and the cancellation of
+$\lambda$. (Likewise verified numerically.)
+\item Remark~\ref{rem:main}: the assertion that sampling $\nu_{s,t,T}$ directly is
+legitimate and makes $\{\Mb_t\}$ unnecessary for simulation. This is the load-bearing
+claim; everything else is elementary algebra.
+\item Whether Corollary~\ref{coro:gammamoments} and its Poisson analogue are
+consistent with the conditional-expectation interpolation property already proved in
+the manuscript (they appear to be, which is a useful cross-check).
+\end{enumerate}
+
+\end{document}
