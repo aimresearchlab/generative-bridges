@@ -24,6 +24,7 @@ RUNS = [
     ("DDPM cosine ancestral",      "mnist_ddpm_cosine", "ddpm_ancestral"),
     ("DDPM linear + DDIM",         "mnist_ddpm_linear", "ddim"),
     ("DDPM linear ancestral",      "mnist_ddpm_linear", "ddpm_ancestral"),
+    ("Improved DDPM (learned sigma)", "mnist_improved", "improved_ancestral"),
 ]
 
 

@@ -29,7 +29,8 @@ from .unet import build_unet
 def load_model(ckpt_path: str, device, use_ema: bool = True):
     ck = torch.load(ckpt_path, map_location="cpu", weights_only=False)
     args = ck["args"]
-    model = build_unet(args["dataset"])
+    model = build_unet(args["dataset"],
+                       learn_sigma=args.get("method") == "improved_ddpm")
     model.load_state_dict(ck["ema" if use_ema else "model"])
     return model.to(device).eval(), args, ck["step"]
 
@@ -39,6 +40,10 @@ def make_scheme(targs):
     if targs.get("method") == "flow_matching":
         from .flowmatch import FlowMatching
         return FlowMatching(t_scale=targs["t_scale"]), ["flow_euler"]
+    if targs.get("method") == "improved_ddpm":
+        from .improved_ddpm import ImprovedDiffusion
+        d = ImprovedDiffusion(targs["timesteps"], targs["schedule"], "cuda")
+        return d, ["improved_ancestral"]
     if targs.get("method") == "ddpm":
         from .ddpm_baseline import Diffusion
         d = Diffusion(targs["timesteps"], targs["schedule"], "cuda")
@@ -58,7 +63,10 @@ def generate(model, bridge, n: int, dataset: str, device, n_steps: int,
         b = min(batch_size, n - done)
         x0 = torch.randn(b, c, D.IMAGE_SIZE, D.IMAGE_SIZE, device=device, generator=g)
         with torch.autocast("cuda", dtype=torch.bfloat16, enabled=amp):
-            if sampler in ("ddim", "ddpm_ancestral"):
+            if sampler == "improved_ancestral":
+                s = bridge.sample(model, (b, c, D.IMAGE_SIZE, D.IMAGE_SIZE), device,
+                                  n_steps=n_steps, generator=g, x_init=x0)
+            elif sampler in ("ddim", "ddpm_ancestral"):
                 s = bridge.sample(model, (b, c, D.IMAGE_SIZE, D.IMAGE_SIZE), device,
                                   n_steps=n_steps,
                                   eta=0.0 if sampler == "ddim" else 1.0,
