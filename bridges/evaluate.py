@@ -42,7 +42,7 @@ def make_scheme(targs):
     if targs.get("method") == "ddpm":
         from .ddpm_baseline import Diffusion
         d = Diffusion(targs["timesteps"], targs["schedule"], "cuda")
-        return d, ["ddim", "ddpm_ancestral"]
+        return d, ["ddim", "ddpm_ancestral"]   # default; an explicit --samplers wins
     return GaussianBridge(BridgeConfig(gamma=targs["gamma"], t_scale=targs["t_scale"])), None
 
 
@@ -89,13 +89,15 @@ def main():
     p.add_argument("--save_grid", action="store_true")
     p.add_argument("--compile", action="store_true")
     args = p.parse_args()
+    # did the caller name samplers, or are we on the default list?
+    args.samplers_explicit = any(a.startswith("--samplers") for a in __import__("sys").argv)
 
     device = "cuda"
     torch.backends.cuda.matmul.allow_tf32 = True
     model, targs, step = load_model(args.ckpt, device, use_ema=not args.raw_weights)
     dataset = targs["dataset"]
     bridge, forced = make_scheme(targs)
-    if forced is not None:
+    if forced is not None and not args.samplers_explicit:
         args.samplers = forced
     print(f"loaded {args.ckpt} (step {step}, dataset {dataset}, "
           f"method {targs.get('method', 'bridge')}, gamma {targs.get('gamma', 0.0):.4f}, "

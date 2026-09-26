@@ -27,16 +27,23 @@ RUNS = [
 ]
 
 
-def collect(root: str, run_dir: str, sampler: str):
-    """-> {nfe: (fid_train_mean, sd, fid_test_mean, n_seeds, imgs_per_s)}"""
+def collect(root: str, run_dir: str, sampler: str, n_samples: int | None = None,
+            pattern: str = "fid_*.json"):
+    """-> {nfe: (fid_train_mean, sd, fid_test_mean, n_seeds, imgs_per_s)}
+
+    `n_samples` filters strictly: FID is only comparable at a fixed sample
+    count, so mixing sweeps run at different n into one mean would be wrong.
+    """
     tr, te, sp = defaultdict(list), defaultdict(list), {}
-    for path in sorted(glob.glob(os.path.join(root, run_dir, "fid_*.json"))):
+    for path in sorted(glob.glob(os.path.join(root, run_dir, pattern))):
         try:
             rows = json.load(open(path))
         except Exception:
             continue
         for r in rows:
             if r.get("sampler") != sampler:
+                continue
+            if n_samples is not None and r.get("n_samples") != n_samples:
                 continue
             tr[r["n_steps"]].append(r["fid_train"])
             te[r["n_steps"]].append(r["fid_test"])
@@ -60,8 +67,9 @@ def fmt_md(v, sd, prec=2):
     return f"{v:.{prec}f}" if sd is None else f"{v:.{prec}f} ±{sd:.2f}"
 
 
-def build(root, steps, runs, dataset, n_samples, floor):
-    data = {name: collect(root, d, s) for name, d, s in runs}
+def build(root, steps, runs, dataset, n_samples, floor, pattern="fid_*.json"):
+    data = {name: collect(root, d, s, n_samples=n_samples, pattern=pattern)
+            for name, d, s in runs}
     data = {k: v for k, v in data.items() if v}
     if not data:
         return None, None
@@ -139,10 +147,13 @@ def main():
     p.add_argument("--floor", type=float, default=1.50)
     p.add_argument("--out_tex", default="runs/tables.tex")
     p.add_argument("--out_md", default="runs/tables.md")
+    p.add_argument("--pattern", default="fid_*.json",
+                   help="which sweep files to read, e.g. fid_n50k*.json")
     a = p.parse_args()
 
     runs = [(n, d.replace("mnist", a.prefix), s) for n, d, s in RUNS]
-    tex, md = build(a.root, a.steps, runs, a.dataset, a.n_samples, a.floor)
+    tex, md = build(a.root, a.steps, runs, a.dataset, a.n_samples, a.floor,
+                    pattern=a.pattern)
     if tex is None:
         print("no sweep data found"); return
     open(a.out_tex, "w").write(tex + "\n")
