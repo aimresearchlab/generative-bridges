@@ -31,7 +31,17 @@ PALETTE = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100",
            "#e87ba4", "#008300", "#4a3aa7", "#e34948"]
 
 # (label, run dir, sampler, palette slot, linestyle)
-SERIES = [
+# the headline comparison: one bridge curve (Euler-Maruyama, the best of the three
+# at every step count measured), the matched modern control, and both diffusion
+# baselines. The three-way sampler comparison lives in its own diagnostic figure.
+SERIES_HEADLINE = [
+    ("Bridge (Euler–Maruyama)", "mnist_g0316_t1000", "euler",      0, "-"),
+    ("Flow matching",           "mnist_flow",        "flow_euler", 3, "-"),
+    ("DDPM cosine + DDIM",      "mnist_ddpm_cosine", "ddim",       6, (0, (5, 2))),
+    ("DDPM linear + DDIM",      "mnist_ddpm_linear", "ddim",       7, (0, (5, 2))),
+]
+
+SERIES_ALL = [
     ("Bridge — exact posterior",      "mnist_g0316_t1000", "bridge",     0, "-"),
     ("Bridge — Euler–Maruyama",       "mnist_g0316_t1000", "euler",      1, "-"),
     ("Bridge — deterministic Euler",  "mnist_g0316_t1000", "euler_det",  2, "-"),
@@ -39,6 +49,7 @@ SERIES = [
     ("DDPM cosine + DDIM",            "mnist_ddpm_cosine", "ddim",       6, (0, (5, 2))),
     ("DDPM linear + DDIM",            "mnist_ddpm_linear", "ddim",       7, (0, (5, 2))),
 ]
+SERIES = SERIES_HEADLINE
 
 
 def load(root, run_dir, sampler, n_samples, pattern="fid_n50k*.json"):
@@ -64,13 +75,16 @@ def main():
     p.add_argument("--caption", default=None)
     p.add_argument("--provisional", nargs="*", default=[],
                    help="series to mark with square markers as not yet trusted")
+    p.add_argument("--all_rows", action="store_true",
+                   help="include every bridge sampler, not just the headline four")
     p.add_argument("--compact", action="store_true",
                    help="no baked-in caption or title; for embedding where the "
                         "surrounding document supplies them")
     a = p.parse_args()
 
+    rows = SERIES_ALL if a.all_rows else SERIES_HEADLINE
     data = [(lbl, load(a.root, d, s, a.n_samples), slot, ls)
-            for lbl, d, s, slot, ls in SERIES]
+            for lbl, d, s, slot, ls in rows]
     data = [t for t in data if t[1]]
     if not data:
         print("no data"); return
@@ -89,12 +103,14 @@ def main():
                 textcoords="offset points", ha="right", va="bottom",
                 fontsize=8, color=INK_MUTED, zorder=2)
 
+    ends = []
     for lbl, series, slot, ls in data:
         xs = sorted(series)
         ys = [series[x] for x in xs]
         mark = "o" if lbl not in a.provisional else "s"
         ax.plot(xs, ys, color=PALETTE[slot], lw=2.0, ls=ls, marker=mark, ms=5.2,
                 mec=SURFACE, mew=1.1, label=lbl, zorder=3)
+        ends.append((ys[-1], xs[-1], lbl))
 
     allx = sorted({k for _, s, _, _ in data for k in s})
     ax.set_xscale("log"); ax.set_yscale("log")
@@ -133,16 +149,16 @@ def main():
     fig.text(0.105, 0.950, sub, fontsize=9.5, color=INK_SECONDARY,
              ha="left", va="top", linespacing=1.5)
 
-    cap = a.caption or (
-        "FID against network evaluations per generated sample, on MNIST. Six schemes "
+    cap_headline = (
+        "FID against network evaluations per generated sample, on MNIST. Four schemes "
         "trained under an identical budget and measured through identical code; only "
         "the generative process and its sampler differ. 50,000 samples per point against "
         "the full 60,000-image training split. The dashed rule at 0.15 is the achievable "
         "floor, measured between disjoint real subsets of the same size. "
-        "The bridge leads at 10-20 evaluations and flow matching from 50 onward, both "
-        "well below the diffusion baselines throughout. Deterministic Euler (green) is "
-        "the sampler the original implementation evaluated: it converges to about three "
-        "times the floor excess of the correct samplers, which is the reported plateau. "
+        "The bridge leads from 10 to 20 evaluations and flow matching from 50 onward; "
+        "both sit below the two diffusion baselines across the whole range. The bridge "
+        "curve is the Euler-Maruyama sampler, the best of the three bridge samplers at "
+        "every step count measured; the sampler comparison is a separate figure. "
         "The DDPM curves turn upward after 100 evaluations. That is a documented failure "
         "mode rather than an implementation artefact: clipping beta at 0.999 gives the "
         "cosine schedule an effectively zero terminal SNR (alpha-bar 2.4e-9), where "
@@ -151,6 +167,20 @@ def main():
         "ancestral sampler is flat over the same range - and two independent timestep "
         "grids reproduce it. The remedy, v-prediction, is not applied here."
     )
+    cap_all = (
+        "FID against network evaluations per generated sample, on MNIST, for the three "
+        "bridge samplers alongside flow matching and the two diffusion baselines, all "
+        "trained under an identical budget and measured through identical code. "
+        "50,000 samples per point against the full 60,000-image training split; the "
+        "dashed rule at 0.15 is the achievable floor between disjoint real subsets. "
+        "Deterministic Euler (green) is the sampler the original implementation "
+        "evaluated: it converges to about three times the floor excess of the two "
+        "correct bridge samplers, which is the reported step-count plateau. "
+        "The DDPM curves turn upward after 100 evaluations - a documented consequence "
+        "of the cosine schedule's effectively zero terminal SNR under epsilon-prediction "
+        "(Lin et al., WACV 2024), affecting deterministic DDIM only."
+    )
+    cap = a.caption or (cap_all if a.all_rows else cap_headline)
     fig.text(0.105, 0.335, "\n".join(textwrap.wrap(cap, 106)),
              fontsize=8.2, color=INK_SECONDARY, ha="left", va="top", linespacing=1.6)
 
