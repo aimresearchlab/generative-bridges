@@ -150,6 +150,40 @@ class ImprovedDiffusion:
                                         "l_vlb": float(l_vlb.detach())}
 
     @torch.no_grad()
+    def sample_ddim(self, model, shape, device, n_steps=50, generator=None,
+                    x_init=None, clip=True, eta=0.0, **kw):
+        """DDIM on the epsilon head, ignoring the learned variance.
+
+        Improved DDPM's learned variance is what makes ANCESTRAL sampling viable
+        at few steps, but DDIM is usually still stronger in the very-low-NFE
+        regime. Reporting only the ancestral sampler would show this baseline
+        below its best, so both are run and the stronger one is what the
+        comparison should be read against.
+        """
+        idx = uniform_grid(self.T, n_steps)
+        x = x_init if x_init is not None else torch.randn(shape, device=device,
+                                                          generator=generator)
+        one = torch.tensor(1.0, dtype=self.abar.dtype, device=device)
+        for i, t in enumerate(idx):
+            u = idx[i + 1] if i + 1 < len(idx) else None
+            ab_t = self.abar[t]
+            ab_u = one if u is None else self.abar[u]
+            tt = torch.full((x.shape[0],), float(t), device=device, dtype=x.dtype)
+            with torch.autocast("cuda", dtype=torch.bfloat16):
+                out = model(x, tt)
+            eps = out[:, :x.shape[1]].float()
+            x0 = (x.float() - (1 - ab_t).sqrt().float() * eps) / ab_t.sqrt().float()
+            if clip:
+                x0 = x0.clamp(-1, 1)
+            sigma = eta * (((1 - ab_u) / (1 - ab_t)) * (1 - ab_t / ab_u)).clamp(min=0).sqrt()
+            dir_xt = (1 - ab_u - sigma ** 2).clamp(min=0).sqrt().float() * eps
+            x = ab_u.sqrt().float() * x0 + dir_xt
+            if eta > 0 and u is not None:
+                x = x + sigma.float() * torch.randn(x.shape, device=device,
+                                                    dtype=x.dtype, generator=generator)
+        return x.float()
+
+    @torch.no_grad()
     def sample(self, model, shape, device, n_steps=50, generator=None, x_init=None,
                clip=True, **kw):
         """Ancestral sampling on a respaced subsequence, using the learned variance."""

@@ -43,7 +43,7 @@ def make_scheme(targs):
     if targs.get("method") == "improved_ddpm":
         from .improved_ddpm import ImprovedDiffusion
         d = ImprovedDiffusion(targs["timesteps"], targs["schedule"], "cuda")
-        return d, ["improved_ancestral"]
+        return d, ["improved_ancestral", "improved_ddim"]
     if targs.get("method") == "ddpm":
         from .ddpm_baseline import Diffusion
         d = Diffusion(targs["timesteps"], targs["schedule"], "cuda")
@@ -63,7 +63,10 @@ def generate(model, bridge, n: int, dataset: str, device, n_steps: int,
         b = min(batch_size, n - done)
         x0 = torch.randn(b, c, D.IMAGE_SIZE, D.IMAGE_SIZE, device=device, generator=g)
         with torch.autocast("cuda", dtype=torch.bfloat16, enabled=amp):
-            if sampler == "improved_ancestral":
+            if sampler == "improved_ddim":
+                s = bridge.sample_ddim(model, (b, c, D.IMAGE_SIZE, D.IMAGE_SIZE), device,
+                                       n_steps=n_steps, generator=g, x_init=x0)
+            elif sampler == "improved_ancestral":
                 s = bridge.sample(model, (b, c, D.IMAGE_SIZE, D.IMAGE_SIZE), device,
                                   n_steps=n_steps, generator=g, x_init=x0)
             elif sampler in ("ddim", "ddpm_ancestral"):

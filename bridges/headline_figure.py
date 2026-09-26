@@ -39,7 +39,7 @@ SERIES_HEADLINE = [
     ("Flow matching",           "mnist_flow",        "flow_euler", 3, "-"),
     ("DDPM cosine + DDIM",      "mnist_ddpm_cosine", "ddim",       6, (0, (5, 2))),
     ("DDPM linear + DDIM",      "mnist_ddpm_linear", "ddim",       7, (0, (5, 2))),
-    ("Improved DDPM",           "mnist_improved",    "improved_ancestral", 4, (0, (5, 2))),
+    ("Improved DDPM + DDIM",    "mnist_improved",    "improved_ddim",      4, (0, (5, 2))),
 ]
 
 SERIES_ALL = [
@@ -49,7 +49,8 @@ SERIES_ALL = [
     ("Flow matching",                 "mnist_flow",        "flow_euler", 3, "-"),
     ("DDPM cosine + DDIM",            "mnist_ddpm_cosine", "ddim",       6, (0, (5, 2))),
     ("DDPM linear + DDIM",            "mnist_ddpm_linear", "ddim",       7, (0, (5, 2))),
-    ("Improved DDPM",                 "mnist_improved",    "improved_ancestral", 4, (0, (5, 2))),
+    ("Improved DDPM + DDIM",          "mnist_improved",    "improved_ddim",      4, (0, (5, 2))),
+    ("Improved DDPM (ancestral)",     "mnist_improved",    "improved_ancestral", 5, (0, (5, 2))),
 ]
 SERIES = SERIES_HEADLINE
 
