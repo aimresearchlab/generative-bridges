@@ -286,5 +286,17 @@
     "n_samples": 50000,
     "eta": 1.0,
     "ckpt_step": 40000
+  },
+  {
+    "sampler": "euler",
+    "n_steps": 1000,
+    "nfe": 1000,
+    "fid_train": 1.0611298231133333,
+    "fid_test": 1.7577441986672966,
+    "gen_seconds": 8819.81176185608,
+    "imgs_per_s": 5.669055230434735,
+    "n_samples": 50000,
+    "eta": 1.0,
+    "ckpt_step": 40000
   }
 ]

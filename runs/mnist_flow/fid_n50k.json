@@ -94,5 +94,17 @@
     "n_samples": 50000,
     "eta": 1.0,
     "ckpt_step": 40000
+  },
+  {
+    "sampler": "flow_euler",
+    "n_steps": 1000,
+    "nfe": 1000,
+    "fid_train": 1.0159204626496887,
+    "fid_test": 1.5898718634117017,
+    "gen_seconds": 8773.25708603859,
+    "imgs_per_s": 5.699137675968484,
+    "n_samples": 50000,
+    "eta": 1.0,
+    "ckpt_step": 40000
   }
 ]

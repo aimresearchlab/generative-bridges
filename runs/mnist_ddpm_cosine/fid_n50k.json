@@ -190,5 +190,17 @@
     "n_samples": 50000,
     "eta": 1.0,
     "ckpt_step": 40000
+  },
+  {
+    "sampler": "ddim",
+    "n_steps": 1000,
+    "nfe": 1000,
+    "fid_train": 16.299667606357218,
+    "fid_test": 17.143990080831685,
+    "gen_seconds": 8837.258594751358,
+    "imgs_per_s": 5.657863178259387,
+    "n_samples": 50000,
+    "eta": 1.0,
+    "ckpt_step": 40000
   }
 ]

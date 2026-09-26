@@ -262,5 +262,65 @@
     "n_samples": 5000,
     "eta": 1.0,
     "ckpt_step": 40000
+  },
+  {
+    "sampler": "euler",
+    "n_steps": 200,
+    "nfe": 200,
+    "fid_train": 2.2641532682490606,
+    "fid_test": 2.81737467268087,
+    "gen_seconds": 182.00129508972168,
+    "imgs_per_s": 27.472331982775927,
+    "n_samples": 5000,
+    "eta": 1.0,
+    "ckpt_step": 40000
+  },
+  {
+    "sampler": "euler_det",
+    "n_steps": 200,
+    "nfe": 200,
+    "fid_train": 3.9237606271756817,
+    "fid_test": 4.564803456419639,
+    "gen_seconds": 182.87086153030396,
+    "imgs_per_s": 27.341698716563645,
+    "n_samples": 5000,
+    "eta": 1.0,
+    "ckpt_step": 40000
+  },
+  {
+    "sampler": "bridge",
+    "n_steps": 1000,
+    "nfe": 1000,
+    "fid_train": 2.167977877753202,
+    "fid_test": 2.7716042926121816,
+    "gen_seconds": 907.8835468292236,
+    "imgs_per_s": 5.507314255735179,
+    "n_samples": 5000,
+    "eta": 1.0,
+    "ckpt_step": 40000
+  },
+  {
+    "sampler": "euler",
+    "n_steps": 1000,
+    "nfe": 1000,
+    "fid_train": 2.0662867773957885,
+    "fid_test": 2.668543945563954,
+    "gen_seconds": 909.0416839122772,
+    "imgs_per_s": 5.500297828457447,
+    "n_samples": 5000,
+    "eta": 1.0,
+    "ckpt_step": 40000
+  },
+  {
+    "sampler": "euler_det",
+    "n_steps": 1000,
+    "nfe": 1000,
+    "fid_train": 3.4877161080052304,
+    "fid_test": 4.1727023694103025,
+    "gen_seconds": 913.6017699241638,
+    "imgs_per_s": 5.472844038398743,
+    "n_samples": 5000,
+    "eta": 1.0,
+    "ckpt_step": 40000
   }
 ]
