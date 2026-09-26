@@ -40,6 +40,7 @@ from . import data as D
 from .data import InfiniteSampler, load
 from .ddpm_baseline import make_betas
 from .ema import EMA
+from .respacing import respaced_posterior, uniform_grid
 from .unet import build_unet
 
 T_SCALE = 1.0
@@ -95,21 +96,33 @@ class ImprovedDiffusion:
                self._g(self.post_ct, t, xt.shape) * xt
         return mean, self._g(self.post_logvar_clipped, t, xt.shape)
 
-    def p_mean_logvar(self, model_out, xt, t, clip=True):
-        """Split the 2C output into (eps, v) and form the reverse Gaussian."""
+    def p_mean_logvar(self, model_out, xt, t, clip=True, jump=None):
+        """Split the 2C output into (eps, v) and form the reverse Gaussian.
+
+        `jump=(s, u)` makes the step target grid point u rather than s-1, which
+        is required whenever the sampler visits a subsequence of the training
+        timesteps. See bridges/respacing.py.
+        """
         c = xt.shape[1]
         eps, v = model_out[:, :c], model_out[:, c:]
-        # v in [-1,1] -> fraction in [0,1], interpolate the two bounds in log space
         frac = (v.float() + 1.0) / 2.0
-        max_log = self._g(torch.log(self.betas), t, xt.shape)
-        min_log = self._g(self.post_logvar_clipped, t, xt.shape)
-        logvar = frac * max_log + (1.0 - frac) * min_log
 
         ab = self._g(self.abar, t, xt.shape)
         x0 = (xt - (1.0 - ab).sqrt() * eps.float()) / ab.sqrt()
         if clip:
             x0 = x0.clamp(-1, 1)
-        mean, _ = self.q_posterior(x0, xt, t)
+
+        if jump is None:
+            max_log = self._g(torch.log(self.betas), t, xt.shape)
+            min_log = self._g(self.post_logvar_clipped, t, xt.shape)
+            mean, _ = self.q_posterior(x0, xt, t)
+        else:
+            s, u = jump
+            c0, ct, var, beta_eff = respaced_posterior(self.abar, s, u)
+            mean = c0.float() * x0 + ct.float() * xt
+            max_log = torch.log(beta_eff.clamp(min=1e-20)).float()
+            min_log = torch.log(var.clamp(min=1e-20)).float()
+        logvar = frac * max_log + (1.0 - frac) * min_log
         return mean, logvar, x0, eps
 
     def training_loss(self, model, y, lam: float = 1e-3):
@@ -140,16 +153,18 @@ class ImprovedDiffusion:
     def sample(self, model, shape, device, n_steps=50, generator=None, x_init=None,
                clip=True, **kw):
         """Ancestral sampling on a respaced subsequence, using the learned variance."""
-        idx = torch.linspace(0, self.T - 1, n_steps, dtype=torch.long).flip(0).tolist()
+        idx = uniform_grid(self.T, n_steps)
         x = x_init if x_init is not None else torch.randn(shape, device=device,
                                                           generator=generator)
         for i, t in enumerate(idx):
             tt = torch.full((x.shape[0],), t, device=device, dtype=torch.long)
+            u = idx[i + 1] if i + 1 < len(idx) else None   # None = the data end
             with torch.autocast("cuda", dtype=torch.bfloat16):
                 out = model(x, tt.to(x.dtype))
-            mean, logvar, _, _ = self.p_mean_logvar(out.float(), x.float(), tt, clip=clip)
-            if i == len(idx) - 1:
-                x = mean
+            mean, logvar, _, _ = self.p_mean_logvar(out.float(), x.float(), tt,
+                                                    clip=clip, jump=(t, u))
+            if u is None:
+                x = mean            # variance is exactly zero at the data end
             else:
                 z = torch.randn(x.shape, device=device, dtype=mean.dtype,
                                 generator=generator)

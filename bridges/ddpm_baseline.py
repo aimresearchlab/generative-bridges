@@ -30,6 +30,7 @@ import torch
 from . import data as D
 from .data import InfiniteSampler, load
 from .ema import EMA
+from .respacing import respaced_posterior, uniform_grid
 from .unet import build_unet
 
 T_SCALE = 1.0  # DDPM feeds integer timesteps directly; the embedding wants O(1e3)
@@ -72,8 +73,10 @@ class Diffusion:
     def sample(self, model, shape, device, n_steps=50, eta=0.0, generator=None,
                x_init=None, clip=True):
         """DDIM on a respaced subsequence. eta=0 deterministic, eta=1 ancestral."""
-        # evenly spaced subsequence of the TRAINED schedule -- this is the fix
-        idx = torch.linspace(0, self.T - 1, n_steps, dtype=torch.long).flip(0).tolist()
+        # evenly spaced subsequence of the TRAINED schedule -- this is the fix.
+        # uniform_grid also gives [T-1] rather than [0] at n_steps == 1, so a
+        # one-step sampler starts from noise instead of the data end.
+        idx = uniform_grid(self.T, n_steps)
         x = x_init if x_init is not None else torch.randn(shape, device=device,
                                                           generator=generator)
         for i, t in enumerate(idx):
@@ -87,7 +90,11 @@ class Diffusion:
             x0 = (xf - (1 - ab_t).sqrt() * eps) / ab_t.sqrt()
             if clip:
                 x0 = x0.clamp(-1, 1)
-            sigma = eta * ((1 - ab_prev) / (1 - ab_t)).sqrt() * (1 - ab_t / ab_prev).sqrt()
+            # eta=0 is DDIM. eta>0 interpolates toward ancestral sampling, and the
+            # variance must come from the RESPACED posterior for the jump t -> t_prev,
+            # not from the schedule's own per-timestep posterior at t.
+            _, _, post_var, _ = respaced_posterior(self.abar, t, t_prev)
+            sigma = eta * post_var.sqrt()
             dir_xt = (1 - ab_prev - sigma**2).clamp(min=0).sqrt() * eps
             x = ab_prev.sqrt() * x0 + dir_xt
             if eta > 0 and t_prev is not None:

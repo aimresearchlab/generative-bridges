@@ -12,18 +12,6 @@
     "ckpt_step": 40000
   },
   {
-    "sampler": "ddpm_ancestral",
-    "n_steps": 1,
-    "nfe": 1,
-    "fid_train": 418.3594028261982,
-    "fid_test": 419.89531757016164,
-    "gen_seconds": 9.622765064239502,
-    "imgs_per_s": 5196.011714534315,
-    "n_samples": 50000,
-    "eta": 1.0,
-    "ckpt_step": 40000
-  },
-  {
     "sampler": "ddim",
     "n_steps": 2,
     "nfe": 2,
@@ -31,18 +19,6 @@
     "fid_test": 286.13474673402914,
     "gen_seconds": 18.55898880958557,
     "imgs_per_s": 2694.1122985200245,
-    "n_samples": 50000,
-    "eta": 1.0,
-    "ckpt_step": 40000
-  },
-  {
-    "sampler": "ddpm_ancestral",
-    "n_steps": 2,
-    "nfe": 2,
-    "fid_train": 284.25169905569646,
-    "fid_test": 285.2944557714652,
-    "gen_seconds": 18.57363772392273,
-    "imgs_per_s": 2691.987468647583,
     "n_samples": 50000,
     "eta": 1.0,
     "ckpt_step": 40000
@@ -60,18 +36,6 @@
     "ckpt_step": 40000
   },
   {
-    "sampler": "ddpm_ancestral",
-    "n_steps": 5,
-    "nfe": 5,
-    "fid_train": 18.068187640095232,
-    "fid_test": 18.64266393865401,
-    "gen_seconds": 45.084047079086304,
-    "imgs_per_s": 1109.039743310758,
-    "n_samples": 50000,
-    "eta": 1.0,
-    "ckpt_step": 40000
-  },
-  {
     "sampler": "ddim",
     "n_steps": 10,
     "nfe": 10,
@@ -79,18 +43,6 @@
     "fid_test": 7.809936359810365,
     "gen_seconds": 89.73926639556885,
     "imgs_per_s": 557.1696984862906,
-    "n_samples": 50000,
-    "eta": 1.0,
-    "ckpt_step": 40000
-  },
-  {
-    "sampler": "ddpm_ancestral",
-    "n_steps": 10,
-    "nfe": 10,
-    "fid_train": 10.850193855412499,
-    "fid_test": 11.606717440268568,
-    "gen_seconds": 90.04347443580627,
-    "imgs_per_s": 555.2873244095657,
     "n_samples": 50000,
     "eta": 1.0,
     "ckpt_step": 40000
@@ -108,18 +60,6 @@
     "ckpt_step": 40000
   },
   {
-    "sampler": "ddpm_ancestral",
-    "n_steps": 20,
-    "nfe": 20,
-    "fid_train": 6.860204977867369,
-    "fid_test": 7.532505443987191,
-    "gen_seconds": 179.52284955978394,
-    "imgs_per_s": 278.5160781627924,
-    "n_samples": 50000,
-    "eta": 1.0,
-    "ckpt_step": 40000
-  },
-  {
     "sampler": "ddim",
     "n_steps": 50,
     "nfe": 50,
@@ -127,18 +67,6 @@
     "fid_test": 3.351977059375372,
     "gen_seconds": 448.2515516281128,
     "imgs_per_s": 111.54451070697459,
-    "n_samples": 50000,
-    "eta": 1.0,
-    "ckpt_step": 40000
-  },
-  {
-    "sampler": "ddpm_ancestral",
-    "n_steps": 50,
-    "nfe": 50,
-    "fid_train": 3.9243867899245117,
-    "fid_test": 4.543706490378156,
-    "gen_seconds": 448.8513948917389,
-    "imgs_per_s": 111.39544305540099,
     "n_samples": 50000,
     "eta": 1.0,
     "ckpt_step": 40000
@@ -156,18 +84,6 @@
     "ckpt_step": 40000
   },
   {
-    "sampler": "ddpm_ancestral",
-    "n_steps": 100,
-    "nfe": 100,
-    "fid_train": 3.1817442208194393,
-    "fid_test": 3.783231355431667,
-    "gen_seconds": 898.160236120224,
-    "imgs_per_s": 55.66935385158513,
-    "n_samples": 50000,
-    "eta": 1.0,
-    "ckpt_step": 40000
-  },
-  {
     "sampler": "ddim",
     "n_steps": 200,
     "nfe": 200,
@@ -175,18 +91,6 @@
     "fid_test": 3.2796573679112555,
     "gen_seconds": 1795.0337212085724,
     "imgs_per_s": 27.85462992101099,
-    "n_samples": 50000,
-    "eta": 1.0,
-    "ckpt_step": 40000
-  },
-  {
-    "sampler": "ddpm_ancestral",
-    "n_steps": 200,
-    "nfe": 200,
-    "fid_train": 3.0726250786895832,
-    "fid_test": 3.632075994741257,
-    "gen_seconds": 1797.9313008785248,
-    "imgs_per_s": 27.809738879104255,
     "n_samples": 50000,
     "eta": 1.0,
     "ckpt_step": 40000
