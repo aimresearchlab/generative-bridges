@@ -17,6 +17,15 @@ if [ -e "$LOCK" ] && kill -0 "$(cat "$LOCK" 2>/dev/null)" 2>/dev/null; then
   echo "another GPU job is live (pid $(cat "$LOCK")); refusing to start"
   exit 1
 fi
+# Belt and braces: the lockfile only tracks the queue script, but an orphaned
+# worker from a half-killed previous run is just as dangerous. This box has
+# unified memory, so two concurrent jobs each holding an Inception model plus a
+# UNet exhaust all 119 GB and hang the machine rather than raising a CUDA OOM.
+if pgrep -f "bridges\.(evaluate|train|flowmatch|ddpm_baseline|improved_ddpm)" > /dev/null; then
+  echo "a bridges worker is still alive; refusing to start"
+  pgrep -af "bridges\." | head
+  exit 1
+fi
 mkdir -p runs && echo $$ > "$LOCK"
 trap 'rm -f "$LOCK"' EXIT INT TERM
 
@@ -24,11 +33,32 @@ PY=.venv/bin/python
 GRID="1 2 5 10 20 50 100 200 1000"
 COOL_MIN=${COOL_MIN:-20}
 
+# The risk being managed is a ~30 h unbroken run on a desk rig, not short hot
+# spells. So a pause is gated on BOTH how long the card has been working without
+# relief and how warm it currently is: long stretches get periodic breaks, short
+# blocks get none. Pausing after every block regardless of its length was the
+# wrong shape -- it fired ~16 times, including after sweeps lasting minutes.
+COOL_ABOVE=${COOL_ABOVE:-70}        # only pause if at least this warm
+COOL_EVERY_H=${COOL_EVERY_H:-3}     # and only if this many hours since the last
+LAST_COOL=$(date +%s)
+
 cool () {
-  local t0
+  local t0 now since_h
+  now=$(date +%s)
+  since_h=$(( (now - LAST_COOL) / 3600 ))
   t0=$(nvidia-smi --query-gpu=temperature.gpu --format=csv,noheader)
-  echo "[cooldown] $(date +%H:%M:%S) GPU ${t0}C -> pausing ${COOL_MIN} min"
+  if [ "$since_h" -lt "$COOL_EVERY_H" ]; then
+    echo "[cooldown] $(date +%H:%M:%S) GPU ${t0}C, ${since_h}h since last break -> running on"
+    return 0
+  fi
+  if [ "$t0" -lt "$COOL_ABOVE" ]; then
+    echo "[cooldown] $(date +%H:%M:%S) GPU ${t0}C below ${COOL_ABOVE}C -> running on"
+    LAST_COOL=$now
+    return 0
+  fi
+  echo "[cooldown] $(date +%H:%M:%S) GPU ${t0}C after ${since_h}h -> pausing ${COOL_MIN} min"
   sleep $((COOL_MIN * 60))
+  LAST_COOL=$(date +%s)
   echo "[cooldown] $(date +%H:%M:%S) GPU $(nvidia-smi --query-gpu=temperature.gpu --format=csv,noheader)C -> resuming"
 }
 
