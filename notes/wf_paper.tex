@@ -1,0 +1,383 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage{amsmath,amssymb,amsfonts,amsthm}
+\usepackage[margin=1in]{geometry}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage[font=small,labelfont=bf]{caption}
+\usepackage{microtype}
+\usepackage[colorlinks=true,linkcolor=black,citecolor=black,urlcolor=blue]{hyperref}
+
+\newtheorem{prop}{Proposition}
+\newtheorem{lem}[prop]{Lemma}
+\newtheorem{rem}[prop]{Remark}
+\newtheorem{defn}[prop]{Definition}
+
+\def\R{\mathbb{R}}
+\def\N{\mathbb{N}}
+\def\E{\mathbb{E}}
+\def\P{\mathbb{P}}
+\def\xib{\xi}
+
+\title{Bounded-support random bridges for mask-domain speech enhancement}
+\author{}
+\date{Draft scaffold --- \today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+\noindent
+Generative speech enhancement generalises better than discriminative
+enhancement to unseen acoustic conditions, but is held back by two documented
+costs: it needs tens of network evaluations per utterance, and it can
+hallucinate content that was not present in the input. We observe that both
+costs follow from a modelling choice rather than from generative modelling
+itself. Every diffusion and bridge model currently used for speech takes a
+Gaussian driving process, whose state space is all of $\R^n$; the quantity being
+estimated, a time--frequency mask, lives on $[0,1]$. We construct a random
+bridge driven by a Wright--Fisher process, whose state space is $[0,1]$ by
+construction, and derive its transition kernel as an exact Doob $h$-transform of
+a finite binomial chain, avoiding the series expansion the Wright--Fisher
+diffusion would otherwise require. On the empirical distribution of ideal ratio
+masks the resulting bridge attains a given transport accuracy in fewer sampling
+steps than a Gaussian bridge, by a factor of $2.3$ at five steps. Because a mask
+in $[0,1]$ can only attenuate the observed signal, a mask-domain generative
+model cannot synthesise content absent from its input, so the hallucination
+failure mode is excluded by the construction rather than mitigated after the
+fact. \emph{Sections~\ref{sec:exp} onward are a plan; results reported here are
+one-dimensional and use exact conditional expectations.}
+\end{abstract}
+
+\section{Introduction}
+
+Discriminative speech enhancement maps a noisy observation to a clean estimate
+directly. Generative enhancement instead models the distribution of clean
+speech and conditions on the observation. The generative route is more robust
+when test conditions differ from training conditions
+\cite{welker2022,lemercier2023}, which is the reason to pay for it, but two
+costs are consistently reported. Diffusion-based systems require tens of network
+evaluations per utterance, placing them one to two orders of magnitude above
+discriminative systems in arithmetic cost \cite{comparison2026}. They can also
+insert or substitute phonetic content, produce spurious breathing, and introduce
+tonal artefacts; these hallucinations are described in the literature as an
+open problem \cite{comparison2026,artifree2025}.
+
+Both costs are usually treated as intrinsic to generative modelling. We argue
+they follow instead from the choice of driving process. Existing diffusion and
+bridge formulations for speech --- score-based models, Schr\"odinger bridges and
+their one-step variants --- all drive the transport with Brownian motion, whose
+state space is $\R^n$. When the estimated quantity is a time--frequency mask,
+the state space is $[0,1]$, and a Gaussian transport spends part of every
+trajectory outside it.
+
+\paragraph{Contributions.}
+\begin{enumerate}
+\item We measure how much of a Gaussian bridge's trajectory leaves the feasible
+set on real speech, for three representations, and show the violation is
+substantial for masks and absent for the log-magnitude representation that
+existing systems use (Section~\ref{sec:premise}).
+\item We separate two properties that a support-matched driver may carry,
+boundedness and monotonicity, and show by ablation that monotonicity is the
+expensive one. This rules out the subordinator families and identifies the
+requirement: bounded and non-monotone (Section~\ref{sec:which}).
+\item We construct the Wright--Fisher bridge, deriving its transition kernel as
+an exact $h$-transform of a finite binomial chain and so avoiding the infinite
+mixture representation the diffusion limit requires
+(Section~\ref{sec:wf}).
+\item We show on the empirical mask distribution that the Wright--Fisher bridge
+reaches a given accuracy in fewer sampling steps than a Gaussian bridge, and
+explain the mechanism (Section~\ref{sec:why}).
+\item We set out why a mask-domain generative model cannot hallucinate, and
+specify the enhancement experiment that would test both claims
+(Section~\ref{sec:exp}).
+\end{enumerate}
+
+\section{Background}
+
+\subsection{Random bridges}
+
+We use the formulation of \cite{companion}. For a c\`adl\`ag driving process
+$\{Z_t\}_{t\in[0,T]}$ and laws $\Phi$, $\Psi$ with $\Phi\ll\mu_{Z_0}$ and
+$\Psi\ll\mu_{Z_T}$, a process $\{\xib_t\}$ is a $(\Phi,\Psi)$-bridge under $Z$ if
+its endpoints are distributed as a coupling of $\Phi$ and $\Psi$ and, conditional
+on those endpoints, its finite-dimensional distributions agree with those of $Z$
+conditioned likewise. The network estimates the $L^2$ projection
+$f_\theta(\xib_s,s)\approx\E[Y\mid\xib_s]$ under squared error, and generation
+integrates a transport whose terminal law is $\Psi$.
+
+The definition constrains the driver only to be c\`adl\`ag. Its Gaussian
+specialisation recovers diffusion bridges; the present paper uses a driver that
+the definition admits but that no existing speech system employs.
+
+\subsection{The Gaussian case is what current systems implement}
+
+With $Z_t=\sigma W_t$ and $t=sT$, writing $\gamma^2=\sigma^2T$, the bridge
+marginal conditional on the endpoints is
+\begin{equation}
+\label{eq:gauss}
+\xib_s=(1-s)x+sy+\gamma\sqrt{s(1-s)}\,\varepsilon,
+\qquad \varepsilon\sim\mathcal{N}(0,I),
+\end{equation}
+and the exact transition from $s$ to $u$ pinned at an endpoint estimate
+$\hat y$ is Gaussian with mean $\xib_s+\frac{u-s}{1-s}(\hat y-\xib_s)$ and
+variance $\gamma^2\frac{(u-s)(1-u)}{1-s}$. Score-based enhancement, diffusion
+bridges and Schr\"odinger bridges for speech differ in their schedule,
+parameterisation and training objective, but all place the state in $\R^n$ and
+all inherit \eqref{eq:gauss}'s unbounded support.
+
+\section{The support violation is real, and specific to masks}
+\label{sec:premise}
+
+\paragraph{Measurement.} We take real speech, add noise at $5$\,dB, and form
+three representations of the enhancement problem: the linear magnitude
+spectrogram, with support $[0,\infty)$; the ideal ratio mask, with support
+$[0,1]$; and the phase, which is circular. For each we construct the Gaussian
+bridge \eqref{eq:gauss} between the true endpoints and record the fraction of
+path mass outside the feasible set.
+
+\begin{table}[h]
+\centering\small
+\caption{Fraction of a Gaussian bridge's trajectory outside the feasible set, on
+$149$\,s of real speech. Excess is relative to each representation's own scale.
+The log-magnitude row is a control: its support is unconstrained, and the
+measurement returns zero.}
+\label{tab:premise}
+\begin{tabular}{llrr}
+\toprule
+Representation & Support & Outside & Mean excess \\
+\midrule
+Linear magnitude & $[0,\infty)$ & $11.1\%$ & $0.074$ \\
+Ratio mask       & $[0,1]$      & $8.0\%$  & $0.063$ \\
+Phase            & circular     & $1.3\%$  & $0.069$ \\
+Log magnitude (control) & $\R$  & $0.00\%$ & $0$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Why the mask is the case that matters.} The magnitude constraint has
+an escape: taking logarithms removes it, which is what existing systems do, and
+the control row of Table~\ref{tab:premise} confirms the escape works. A mask
+admits no such transformation. It is bounded on both sides, and the standard
+device --- a sigmoid on the network output --- is a projection applied after the
+fact, not a process that respects the constraint.
+
+The mask distribution also concentrates at the boundary: $81\%$ of
+time--frequency bins fall in the lowest decile and $77\%$ of mass lies within
+$0.05$ of $0$ or $1$. A transport that overshoots does so into the region where
+the target places most of its mass.
+
+\section{Which property of the driver matters}
+\label{sec:which}
+
+A driver matched to $[0,1]$ may be bounded, monotone, or both. The gamma and
+Poisson bridges derived in \cite{companion} are both: they are driven by
+subordinators, so their paths cannot decrease. We separate the two properties
+by ablation, taking a Gaussian bridge and forbidding its steps to decrease while
+leaving the driver, the noise and the support handling unchanged.
+
+\begin{table}[h]
+\centering\small
+\caption{Monotonicity is the expensive property. Targets are Gamma laws of
+varying shape at fixed mean, so only the behaviour of the density at the
+boundary changes; $1$-Wasserstein distance at $50$ steps, exact conditional
+means.}
+\label{tab:mono}
+\begin{tabular}{lrrrr}
+\toprule
+Shape $k$ & Gaussian & Gaussian, monotone & Gamma bridge & monotone / free \\
+\midrule
+$0.5$ & $0.106$ & $1.412$ & $0.362$ & $13.3\times$ \\
+$2.0$ & $0.033$ & $0.498$ & $0.083$ & $15.1\times$ \\
+$8.0$ & $0.012$ & $0.102$ & $0.019$ & $8.3\times$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Forbidding decrease costs between $8$ and $15$ times, against the factor of two
+to three by which the gamma bridge trails a free Gaussian. The subordinator
+families are therefore the wrong choice for a quantity that is not ordered
+relative to its starting point, and a mask is not: a given bin's ideal mask may
+lie above or below any initial estimate. The requirement is a driver that is
+bounded and \emph{not} monotone.
+
+\section{The Wright--Fisher bridge}
+\label{sec:wf}
+
+\subsection{The driver}
+
+The Wright--Fisher diffusion on $[0,1]$,
+\begin{equation}
+\mathrm{d}X_t=\tfrac12\big(\theta_1(1-X_t)-\theta_2X_t\big)\mathrm{d}t
++\sqrt{X_t(1-X_t)}\,\mathrm{d}W_t,
+\end{equation}
+is the canonical diffusion with this state space. It is continuous, hence
+c\`adl\`ag, so it is admitted by the bridge definition; its diffusion
+coefficient is state dependent, so it has neither homogeneous nor independent
+increments and the L\'evy results of \cite{companion} do not reach it. Its
+paths are not monotone.
+
+With $\theta_1=\theta_2=0$ both boundaries absorb, and the law of $X_T$ carries
+atoms at $0$ and $1$ together with a density between. This matters for
+admissibility: the requirement $\Psi\ll\mu_{Z_T}$ fails for a mask distribution
+with boundary atoms if the boundaries are inaccessible, which is the case under
+strong mutation. The neutral process is the member of the family whose terminal
+law has the same atomic structure as the data.
+
+\subsection{Transition kernel without the series expansion}
+
+The transition density of the Wright--Fisher diffusion is available only as an
+infinite mixture over a death process \cite{griffiths1979,jenkins2017}. The
+finite population model of which it is the diffusion limit has no such
+difficulty. With population size $M$, one generation is a binomial resampling,
+\begin{equation}
+\label{eq:wfchain}
+P(i\to j)=\binom{M}{j}\Big(\tfrac{i}{M}\Big)^{j}\Big(1-\tfrac{i}{M}\Big)^{M-j},
+\qquad i,j\in\{0,\dots,M\},
+\end{equation}
+an exact finite stochastic matrix, with $0$ and $M$ absorbing.
+
+\begin{prop}[Wright--Fisher bridge kernel]
+\label{prop:wf}
+Let $\{\xib\}$ be the bridge under the chain \eqref{eq:wfchain} pinned at
+$\xib_1=y$, and let $a$ and $b$ be the generation counts on $[s,u]$ and $[u,1]$.
+Then
+\begin{equation}
+\P(\xib_u=j\mid\xib_s=i,\ \xib_1=y)
+=\frac{P^{a}[i,j]\;P^{b}[j,y]}{P^{a+b}[i,y]},
+\end{equation}
+which is the Doob $h$-transform of \eqref{eq:wfchain} with space--time harmonic
+function $h_u(j;y)=P^{b}[j,y]$.
+\end{prop}
+
+\begin{proof}
+Immediate from the Markov property of the chain and Bayes' rule; the denominator
+is the normalisation $\sum_j P^{a}[i,j]P^{b}[j,y]=P^{a+b}[i,y]$.
+\end{proof}
+
+Every quantity is a power of a finite matrix. For $M=128$ and a few hundred
+generations the powers are precomputed once.
+
+\begin{rem}[Absorbed states]
+Because both boundaries absorb, a path that has reached $0$ or $1$ cannot reach
+a pin that disagrees with it, and the kernel of Proposition~\ref{prop:wf} is
+undefined there. Such paths remain where they are, which is what absorption
+means. In sampling this arises when the endpoint estimate moves after a
+trajectory has absorbed.
+\end{rem}
+
+\subsection{Sampling}
+
+Training is unchanged from the Gaussian case: sample a bridge time, sample the
+state from the marginal, regress the endpoint under squared error. Generation
+alternates evaluating $f_\theta$ and sampling Proposition~\ref{prop:wf} with the
+estimate in place of the unknown endpoint, exactly as ancestral diffusion
+sampling substitutes a point estimate for the posterior.
+
+\section{Why the bounded driver needs fewer steps}
+\label{sec:why}
+
+\begin{table}[h]
+\centering\small
+\caption{Transport accuracy against sampling steps on the empirical distribution
+of ideal ratio masks. $1$-Wasserstein distance, exact conditional means,
+$M=128$, $256$ generations, $5\%$ relative error injected into the endpoint
+estimate. Floor $0.0027$.}
+\label{tab:wf}
+\begin{tabular}{lrrrrr}
+\toprule
+Steps & $2$ & $5$ & $10$ & $20$ & $50$ \\
+\midrule
+Gaussian, projected at the end & $0.0715$ & $0.0485$ & $0.0335$ & $0.0253$ & $\mathbf{0.0179}$ \\
+Gaussian, projected each step  & $0.0715$ & $0.0487$ & $0.0341$ & $0.0262$ & $0.0198$ \\
+Wright--Fisher                 & $\mathbf{0.0561}$ & $\mathbf{0.0208}$ & $\mathbf{0.0192}$ & $\mathbf{0.0200}$ & $0.0207$ \\
+\midrule
+Ratio & $0.79$ & $0.43$ & $0.57$ & $0.79$ & $1.15$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The Wright--Fisher bridge is ahead below fifty steps and by a factor of $2.3$ at
+five. The two cross at fifty.
+
+\paragraph{Mechanism.} A Gaussian transport towards a boundary-concentrated
+target overshoots, and correcting an overshoot costs steps: the drift
+$\frac{\hat y-\xib_s}{1-s}$ must first reverse the excursion and then re-approach.
+Given enough steps the correction completes, which is why the Gaussian catches
+up at fifty. The Wright--Fisher transport cannot overshoot, because its
+diffusion coefficient $\sqrt{x(1-x)}$ vanishes at both boundaries, so the steps
+it does take are not spent undoing earlier ones. The advantage is therefore
+largest where the step budget is smallest, which is the regime in which
+generative enhancement is currently impractical.
+
+The two crossing at fifty steps is consistent with this account rather than a
+contradiction of it: an unconstrained transport with a sufficient budget is the
+more flexible of the two, and the constraint stops paying once the budget is
+ample.
+
+\section{Application: mask-domain enhancement}
+\label{sec:exp}
+
+\subsection{Why the mask domain excludes hallucination}
+
+Let $\hat S=m\odot X$ with $m\in[0,1]$ and $X$ the observed noisy spectrogram.
+Then $|\hat S_{tf}|\le|X_{tf}|$ for every bin, so the estimate is supported on
+the observation. A mask-domain generative model can suppress and it can fail to
+suppress, but it cannot place energy where the input had none. The phonetic
+insertions and spurious vocalisations reported for waveform and complex-spectrum
+diffusion \cite{comparison2026,artifree2025} are not available to it.
+
+This is a property of the output parameterisation rather than of the driver.
+What the driver supplies is the ability to model a distribution over masks
+without leaving $[0,1]$, so that the guarantee is not obtained by projecting a
+model that does not respect it.
+
+\subsection{Planned experiment}
+
+\emph{To be run.} Enhancement on VoiceBank--DEMAND with a mismatched evaluation
+set, since mismatch is where the generative route earns its cost. The transport
+runs from a cheap deterministic mask computed from the observation to the ideal
+ratio mask, both conditioned on the same noisy spectrogram; this uses the
+bridge's arbitrary source distribution rather than starting from noise.
+
+Arms: a discriminative mask predictor; a Gaussian mask bridge, which is the
+ablation isolating the driver; a Wright--Fisher mask bridge; and a published
+waveform or complex-spectrum diffusion system, which is where hallucination has
+been reported. All share architecture, budget and evaluation code.
+
+Measures: PESQ, ESTOI and SI-SDR for quality; network evaluations and wall-clock
+for cost; and, for hallucination, word and phoneme error rate under a fixed ASR
+system, which is the measure on which mask-domain models should be
+unimprovable-upon by construction and waveform models should not.
+
+\subsection{What would falsify the claim}
+
+If a Gaussian mask bridge matches the Wright--Fisher bridge at five to ten steps
+on real data, the mechanism of Section~\ref{sec:why} does not survive contact
+with a learned conditional expectation, and the contribution reduces to the
+derivation. If mask-domain enhancement cannot reach the quality of
+complex-spectrum systems at any step count, the hallucination guarantee is
+purchased at a price the application will not pay.
+
+\section{Limitations}
+
+The results in Tables~\ref{tab:mono} and~\ref{tab:wf} are one-dimensional, use
+exact conditional expectations rather than a trained network, and treat
+time--frequency bins independently. They establish a mechanism and its size in a
+setting where nothing else can be responsible; they do not establish that the
+mechanism survives at spectrogram scale with a learned estimator. The speech
+measurements of Table~\ref{tab:premise} use a small corpus and synthetic
+additive noise. No enhancement experiment has been run.
+
+\begin{thebibliography}{99}
+\bibitem{companion} [Companion paper: random bridges as stochastic transports for generative models.]
+\bibitem{welker2022} Welker, S., Richter, J., Gerkmann, T.
+\emph{Speech enhancement with score-based generative models in the complex STFT domain}. Interspeech 2022.
+\bibitem{lemercier2023} Lemercier, J.-M., Richter, J., Welker, S., Gerkmann, T.
+\emph{StoRM: a diffusion-based stochastic regeneration model for speech enhancement and dereverberation}. IEEE/ACM TASLP 2023.
+\bibitem{comparison2026} \emph{A comparison of generative and discriminative methods for speech enhancement: robustness, complexity, and hallucination}. arXiv:2606.02913.
+\bibitem{artifree2025} \emph{ArtiFree: detecting and reducing generative artifacts in diffusion-based speech enhancement}. arXiv:2509.19495.
+\bibitem{griffiths1979} Griffiths, R.C. \emph{A transition density expansion for a multi-allele diffusion model}. Adv. Appl. Prob. 1979.
+\bibitem{jenkins2017} Jenkins, P.A., Span\`o, D. \emph{Exact simulation of the Wright--Fisher diffusion}. Ann. Appl. Prob. 2017.
+\end{thebibliography}
+
+\end{document}

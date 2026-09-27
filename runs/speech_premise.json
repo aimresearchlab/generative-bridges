@@ -1,0 +1,34 @@
+{
+  "gamma": 0.3162277660168379,
+  "snr_db": 5.0,
+  "rows": [
+    {
+      "representation": "linear magnitude (noisy->clean)",
+      "frac_outside": 0.11100412160158157,
+      "mean_excess_rel": 0.07427249103784561,
+      "max_excess_rel": 0.7396609783172607,
+      "n_entries": 90750555
+    },
+    {
+      "representation": "ratio mask (ones->ideal)",
+      "frac_outside": 0.08030349016189575,
+      "mean_excess_rel": 0.06338297575712204,
+      "max_excess_rel": 0.804890513420105,
+      "n_entries": 90750555
+    },
+    {
+      "representation": "phase (random->true)",
+      "frac_outside": 0.01279969047755003,
+      "mean_excess_rel": 0.0693381130695343,
+      "max_excess_rel": 0.6866840720176697,
+      "n_entries": 90750555
+    },
+    {
+      "representation": "log magnitude (control, unconstrained)",
+      "frac_outside": 0.0,
+      "mean_excess_rel": 0.0,
+      "max_excess_rel": 0.0,
+      "n_entries": 90750555
+    }
+  ]
+}
