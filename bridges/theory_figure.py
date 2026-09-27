@@ -43,6 +43,8 @@ def main():
     p.add_argument("--diagnose", default="runs/diagnose_timecond.json")
     p.add_argument("--out", default="runs/figures/mnist_theory.png")
     p.add_argument("--dataset", default="mnist")
+    p.add_argument("--bare", action="store_true",
+                   help="omit the baked title and caption; for document embedding")
     a = p.parse_args()
 
     recs = json.load(open(a.diagnose))
@@ -57,9 +59,14 @@ def main():
     sens = [r["time_sensitivity"] for r in fixed["profile"]]
     sens_d = [r["time_sensitivity"] for r in degen["profile"]] if degen else None
 
-    fig = plt.figure(figsize=(8.8, 9.6), facecolor=SURFACE)
-    ax1 = fig.add_axes([0.105, 0.565, 0.855, 0.300])
-    ax2 = fig.add_axes([0.105, 0.330, 0.855, 0.180])
+    if a.bare:
+        fig = plt.figure(figsize=(8.8, 6.6), facecolor=SURFACE)
+        ax1 = fig.add_axes([0.105, 0.455, 0.855, 0.485])
+        ax2 = fig.add_axes([0.105, 0.105, 0.855, 0.250])
+    else:
+        fig = plt.figure(figsize=(8.8, 9.6), facecolor=SURFACE)
+        ax1 = fig.add_axes([0.105, 0.565, 0.855, 0.300])
+        ax2 = fig.add_axes([0.105, 0.330, 0.855, 0.180])
 
     # --- panel 1: the supermartingale
     ax1.set_facecolor(SURFACE)
@@ -103,6 +110,12 @@ def main():
         for t in leg.get_texts():
             t.set_color(INK_SECONDARY)
     ax1.yaxis.set_minor_formatter(mticker.NullFormatter())
+
+    if a.bare:
+        os.makedirs(os.path.dirname(a.out), exist_ok=True)
+        fig.savefig(a.out, dpi=190, facecolor=SURFACE)
+        print(f"wrote {a.out} (bare)")
+        return
 
     fig.text(0.105, 0.982, "The formalism describes the trained network",
              fontsize=13.5, color=INK_PRIMARY, ha="left", va="top")

@@ -30,17 +30,17 @@ only the generative process and its sampler differ. Three conclusions change
 relative to the submitted manuscript. First, the reported step-count plateau is
 an artefact of the sampler that was evaluated, not a property of the method:
 with a correct sampler, quality improves monotonically to 1000 network
-evaluations. Second, at matched budget the bridge now \emph{beats} improved
-denoising diffusion at every step count, reversing the concession in the current
-draft. Third, the free parameter is $\gamma^2=\sigma^2T$, not $\sigma$ and $T$
+evaluations. Second, at matched budget the bridge reaches a lower FID than improved denoising
+diffusion at every step count tested, where the submitted draft reports the
+opposite at 1000 steps. Third, the free parameter is $\gamma^2=\sigma^2T$, not $\sigma$ and $T$
 separately, which collapses two reported tuning decisions into one. We also
-record several defects we found in our own re-implementation, because two of
-them flattered the proposed method and would have survived review.
+record four defects found in our own re-implementation, two of which lowered the
+baselines rather than the proposed method.
 \end{abstract}
 
 \section{Protocol}
 
-\paragraph{What is held fixed.} One UNet per dataset, with parameter count
+\paragraph{Shared configuration.} One UNet per dataset, with parameter count
 verified identical to the architecture used in the original experiments
 (7.28\,M on MNIST, 52.54\,M on CIFAR-10). AdamW at $2\times10^{-4}$, 500-step
 linear warmup then constant, gradient-norm clipping at 1.0, batch size 128,
@@ -48,23 +48,22 @@ linear warmup then constant, gradient-norm clipping at 1.0, batch size 128,
 autocast. All data at $32\times32$ in $[-1,1]$. Sampling and evaluation code is
 shared by every method.
 
-\paragraph{What FID means here.} 50\,000 generated samples per entry on MNIST,
+\paragraph{FID protocol.} 50\,000 generated samples per entry on MNIST,
 scored against Inception-v3 pool3 statistics computed over the \emph{full}
 60\,000-image training split. Generated samples are mapped once from $[-1,1]$ to
 8-bit by a clamped affine map; no per-image rescaling is applied to either reals
 or fakes, and nothing is written to disk in between.
 
-This differs from the original pipeline in ways that matter. There, each sample
+This differs from the original pipeline in four respects. There, each sample
 was min--max rescaled, written to PNG through \texttt{matplotlib} (which
 normalises a second time, per image), read back, and min--max rescaled a third
 time; reals received a per-image min--max as well. Per-image contrast
 normalisation is not measurement-neutral, and the composite is not FID as it is
-reported elsewhere. As an aside we note that the pipeline is \emph{contrast
-blind}: the same image presented at four times the contrast maps to a
-byte-identical array.
+reported elsewhere. The pipeline is also contrast blind: the same image presented at four times the
+contrast maps to a byte-identical array.
 
-\paragraph{What the numbers can resolve.} FID is biased upward at finite sample
-count, so we measure the floor rather than assume it. Comparing two disjoint
+\paragraph{Resolution of the measurement.} FID is biased upward at finite sample
+count, so we measured the floor rather than assuming it. Comparing two disjoint
 \emph{real} subsets of the same size gives, on MNIST, 6.89 at $n=2000$, 2.74 at
 $n=5000$, 1.43 at $n=10\,000$ and 0.63 at $n=25\,000$. The figure quoted with the
 main table, 0.15, is the matched floor: a real held-out set of 5000 against the
@@ -75,9 +74,9 @@ smaller is not.
 
 \section{Does quality improve with sampling steps?}
 
-This is the question the submitted manuscript leaves open, describing a
-``numerical plateauing behaviour'' to be investigated in future. It does not
-require future work; it is the sampler.
+The submitted manuscript leaves this open, describing a ``numerical plateauing
+behaviour'' to be investigated in future. The behaviour is a property of the
+sampler that was evaluated.
 
 \paragraph{The sampler that was evaluated.} \texttt{sample\_bridges.py}
 constructs the sampler with \texttt{deterministic=True}, which deletes the
@@ -87,13 +86,12 @@ diffusion term from
 \end{equation}
 leaving $\xib_u=\xib_s+\frac{\hat y-\xib_s}{1-s}(u-s)$. Algorithm 2 of the
 manuscript includes the diffusion term, so the published table was not produced
-by the algorithm the paper prints. More importantly, the deletion is not a
-harmless approximation. A deterministic sampler preserving the marginals must
+by the algorithm the paper prints. The deletion is not a harmless approximation. A deterministic sampler preserving the marginals must
 follow the probability-flow ODE, whose drift carries the extra term
 $-\tfrac{\gamma^2}{2}\nabla\!\log p_s$; without it the scheme matches neither
 the SDE nor its flow ODE, and refining the grid converges to the wrong law.
 
-\paragraph{Isolated, with no network involved.} On a one-dimensional problem
+\paragraph{The sampler in isolation.} On a one-dimensional problem
 where $\E[Y\mid\xi_s]$ is available in closed form ($\Phi=\N(0,1)$, $\Psi$ a
 Gaussian mixture), so that all residual error is the sampler's, the exact
 posterior and Euler--Maruyama schemes both reach the Monte-Carlo floor in
@@ -110,7 +108,7 @@ the same signature. The correct samplers fall monotonically to 1000 network
 evaluations; the deterministic map converges to roughly three times their floor
 excess and stays there.
 
-\paragraph{What this does not explain.} The submitted table does not merely
+\paragraph{The published degradation remains unexplained.} The submitted table does not merely
 plateau, it \emph{degrades}: 19.34 at 10 steps, 22.01 at 100, 23.55 at 1000.
 Our deterministic sampler flattens but never worsens, so the sampler alone does
 not account for the published curve. We tested two further hypotheses and both
@@ -119,9 +117,8 @@ asymptote by $+0.4$ to $+0.6$ FID but produces a rise past the optimum of only
 $+0.06$ to $+0.18$, against seed noise of $0.08$, where the published curve
 climbs $+4.21$. Terminal-point precision is not implicated either: re-running
 the original $t\in[0,T]$ grid in float64, and in the $s=t/T$ parameterisation,
-changes the result by about one per cent at every step count. We therefore
-report the \emph{level} and the \emph{plateau} as explained and attributed, and
-the degradation as unexplained.
+changes the result by about one per cent at every step count. We therefore report the level and the plateau as accounted for, and the
+degradation as unexplained.
 
 \section{Results at matched budget}
 
@@ -133,13 +130,23 @@ code. 50\,000 samples per entry, floor 0.15. Mean $\pm$ sd over sampling seeds
 where repeats were run. \emph{This table is generated directly from the
 evaluation output, not transcribed.}}
 \label{tab:main}
-\input{../runs/tables_mnist_body.tex}
+\setlength{\tabcolsep}{4pt}
+\resizebox{\textwidth}{!}{\input{../runs/tables_mnist_body.tex}}
 \end{table}
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=0.93\textwidth]{../runs/figures/mnist_all_curves.png}
-\caption{Every measured sampler. Panels share the vertical scale.}
+\includegraphics[width=\textwidth]{../runs/figures/mnist_all_curves_bare.png}
+\caption{FID against network evaluations per generated sample on MNIST, 50\,000
+samples per point against the full 60\,000-image training split. Panels share the
+vertical scale; the dashed rule at 0.15 is the floor measured between disjoint
+real subsets of the same size. Top: the three bridge samplers. Deterministic
+Euler, the sampler the original implementation evaluated, converges to roughly
+three times the floor excess of the other two. Bottom: the baselines. Both DDIM
+curves rise past 100 evaluations, reaching 16.30 and 13.26 at 1000. Two
+dominated rows, DDPM cosine and linear with ancestral sampling, appear in
+Table~\ref{tab:main} but are omitted here: nine curves exceed the eight-slot
+categorical palette.}
 \label{fig:curves}
 \end{figure}
 
@@ -153,46 +160,43 @@ leads from 10 to 20 evaluations and flow matching from 50 onward, by 0.3 to 0.5
 FID against seed noise of 0.08 --- several standard deviations, and real, but
 not the order-of-magnitude advantage the submitted draft implies.
 
-\paragraph{The bridge against improved denoising diffusion.} This is the
-comparison that changes. Improved DDPM --- the learned reverse variance trained
-with the hybrid objective, not merely a cosine schedule --- reaches 1.93 at 1000
-evaluations. That it lands beside the 1.90 reported in the submitted manuscript
-is the check that our re-implementation of this baseline is faithful rather than
-weakened. At matched budget the bridge reaches 1.06 and flow matching 1.02 at
-the same step count. The concession that improved denoising wins at high step
-counts does not survive a matched comparison.
+\paragraph{The bridge against improved denoising diffusion.} Improved DDPM ---
+the learned reverse variance trained with the hybrid objective, not a cosine
+schedule alone --- reaches 1.93 at 1000 evaluations. The submitted manuscript
+reports 1.90 for the same baseline, and we take that agreement as evidence that
+our re-implementation of it is faithful rather than weakened. At matched budget
+the bridge reaches 1.06 and flow matching 1.02 at the same step count, so under
+a matched comparison improved denoising does not lead at high step counts.
 
-\paragraph{A pathology in the diffusion baselines, and why it is not ours.}
+\paragraph{The DDIM samplers collapse past 100 evaluations.}
 Both DDIM curves collapse beyond 100 evaluations, reaching 16.30 and 13.26 at
-1000. This is documented behaviour rather than an implementation fault: clipping
+1000. Clipping
 $\beta$ at 0.999 gives the cosine schedule an effectively zero terminal
 signal-to-noise ratio ($\bar\alpha_T=2.4\times10^{-9}$), at which
 $\epsilon$-prediction is degenerate and the $x_0$ reconstruction divides by
 $\sqrt{\bar\alpha}=4.9\times10^{-5}$, amplifying the network's error twenty
-thousandfold \cite{lin2024}. It is specific to the deterministic sampler --- the
-ancestral samplers, which re-inject noise at that step, are flat over the same
-range --- and two independent DDIM timestep grids reproduce it. The prescribed
-remedy is $v$-prediction, which we do not apply. We flag it because a baseline
-that degrades flatters us, and a reader is entitled to know why it does.
+thousandfold \cite{lin2024}. The effect is confined to the deterministic sampler: the ancestral samplers,
+which re-inject noise at that step, are flat over the same range, and two
+independent DDIM timestep grids reproduce it. The prescribed
+remedy is $v$-prediction, which we do not apply. We report it because a baseline that degrades inflates the margin over it.
 
 \section{Theory against measurement}
 
 Proposition 2.13 states that $\mathrm{Var}[Y\mid\xib_s]$ is a supermartingale in
-the Loewner order and Remark 2.14 that it vanishes at the terminal time. Neither
-is tested in the submitted manuscript, and both can be tested for free, because
-the training objective already estimates the quantity: at bridge time $s$,
+the Loewner order and Remark 2.14 that it vanishes at the terminal time. Neither is tested in the submitted manuscript. Both can be tested without
+additional computation, since the training objective already estimates the
+quantity: at bridge time $s$,
 $\E\|y-f_\theta(\xib_s,s)\|^2\to\mathrm{tr}\,\mathrm{Var}[Y\mid\xib_s]/n$ once
-$f_\theta$ attains the $\mathcal{L}^2$ projection. A trained network therefore
-\emph{measures} the supermartingale.
+$f_\theta$ attains the $\mathcal{L}^2$ projection. A trained network therefore measures the supermartingale.
 
-Two endpoints are predicted exactly and serve as the check. At $s\to1$ the state
+Two endpoints are predicted exactly. At $s\to1$ the state
 pins down $y$, so the value must vanish: measured $9\times10^{-5}$. At $s=0$ the
 state $\xib_0=x$ is independent of $y$ under the coupling used here, so the best
 predictor is $\E[Y]$ and the value must equal the mean per-pixel variance of the
-data: theory $0.21201$, measured $0.21346$, a ratio of $1.007$. The network
-attains the information-theoretic floor at the noise end to better than one per
-cent and traces the predicted decay from there, monotonically across all 21
-sampled times (Figure~\ref{fig:theory}).
+data: theory $0.21201$, measured $0.21346$, a ratio of $1.007$. The measured
+value at the noise end is therefore within $0.7\%$ of the predicted floor, and
+the profile decreases monotonically across all 21 sampled times
+(Figure~\ref{fig:theory}).
 
 A visual form of the same statement: at a single network evaluation the sampler
 returns $\E[Y\mid\xib_0]=\E[Y]$, and all generated samples are identical --- the
@@ -200,23 +204,28 @@ mean digit.
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=0.90\textwidth]{../runs/figures/mnist_theory.png}
-\caption{The conditional-variance supermartingale, measured; and the
-time-sensitivity diagnostic of Section~\ref{sec:defects}.}
+\includegraphics[width=\textwidth]{../runs/figures/mnist_theory_bare.png}
+\caption{Top: $\mathrm{tr}\,\mathrm{Var}[Y\mid\xib_s]/n$ estimated by the
+regression loss of a trained network on held-out test data, against bridge time.
+The dashed rule is the mean per-pixel $\mathrm{Var}[Y]$ of the data, which is
+the value theory requires at $s=0$. Bottom: time sensitivity, defined as the
+spread of the network's output when the state is held fixed and only the time
+argument is swept, normalised by the output's own pixel standard deviation. The
+two networks have equal regression loss at every bridge time to four decimals.}
 \label{fig:theory}
 \end{figure}
 
 \section{Sensitivity to the one free parameter}
 
-\paragraph{There is one, not two.} Writing $t=sT$, the bridge marginal is
+\paragraph{$\sigma$ and $T$ are not separately identifiable.} Writing $t=sT$, the bridge marginal is
 $\xib_s=(1-s)x+sy+\gamma\sqrt{s(1-s)}\,\varepsilon$ with
 $\gamma^2=\sigma^2T$. Training and sampling depend on $\sigma$ and $T$ only
 through $\gamma$. Section 3 of the manuscript reports $T=0.1$ ``after
 preliminary parameter tuning'' and Section 2.4 defers $\sigma$ to future work;
 these are the same knob, and the published setting is $\gamma=0.3162$.
 
-\paragraph{What to expect.} The one-dimensional study above fixes the
-prediction: the deterministic sampler's bias should scale with $\gamma$ and
+\paragraph{Prediction from the one-dimensional case.} The study above gives a
+prediction to test: the deterministic sampler's bias should scale with $\gamma$ and
 vanish as $\gamma\to0$, where the scheme degenerates to a deterministic
 interpolant and the omitted term $\tfrac{\gamma^2}{2}\nabla\!\log p_s$ goes with
 it; the correct samplers should be comparatively insensitive. Larger $\gamma$
@@ -235,8 +244,8 @@ trained model.}
 \section{Defects found in our own re-implementation}
 \label{sec:defects}
 
-We record these because two of them flattered the proposed method, and because
-the pattern is instructive: each was invisible in training curves.
+Each of these was invisible in the training curves, and two of them lowered the
+baselines rather than the proposed method.
 
 \paragraph{Time conditioning is free on the loss.} Feeding $t\in[0,0.1)$ to a
 sinusoidal embedding built for $[0,10^3)$ makes every channel the same
@@ -269,16 +278,15 @@ microscopic move followed by a full variance re-injection. On a two-step cosine
 grid the first step was
 $\text{mean}=1.6\times10^{-3}\hat x_0+3.2\times10^{-2}x_t$ followed by $+1.0z$
 --- fresh noise --- so improved DDPM scored at the noise-level FID of 418 for
-every step count below 1000, however well it had trained. This is the same
-weak-baseline failure we identify in the submitted manuscript, reached by a
-different route, and it made the \emph{baselines} look hopeless in exactly the
-low-step regime where we claim an advantage. Fixed by deriving the posterior for
+every step count below 1000, however well it had trained. The failure mode matches the one we identify in the submitted manuscript,
+reached by a different route, and it depressed the baselines in the low-step
+regime where the bridge is claimed to lead. Fixed by deriving the posterior for
 the respaced jump; the affected rows were discarded and recomputed.
 
 \paragraph{We initially gave improved DDPM only its ancestral sampler.} At 10
 evaluations that scored 10.99 against plain DDPM+DDIM's 6.96 --- an
-\emph{improved} model losing to the plain one, which is the signature of
-measuring a configuration rather than a method. Both samplers are now reported.
+improved model scoring worse than the plain one, which indicated that the
+configuration and not the method was being measured. Both samplers are now reported.
 
 \bibliographystyle{plain}
 \begin{thebibliography}{9}

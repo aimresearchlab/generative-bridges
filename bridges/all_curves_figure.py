@@ -70,6 +70,9 @@ def main():
     p.add_argument("--n_samples", type=int, default=50000)
     p.add_argument("--floor", type=float, default=0.15)
     p.add_argument("--out", default="runs/figures/mnist_all_curves.png")
+    p.add_argument("--bare", action="store_true",
+                   help="omit the baked title and caption; for embedding where the "
+                        "document supplies its own")
     a = p.parse_args()
 
     data = []
@@ -82,9 +85,14 @@ def main():
     allx = sorted({k for _, rows in data for _, sr, _, _ in rows for k in sr})
     ylo, yhi = min(min(allv), a.floor) * 0.72, max(allv) * 1.5
 
-    fig = plt.figure(figsize=(8.8, 10.4), facecolor=SURFACE)
-    axes = [fig.add_axes([0.10, 0.600, 0.875, 0.260]),
-            fig.add_axes([0.10, 0.283, 0.875, 0.260])]
+    if a.bare:
+        fig = plt.figure(figsize=(8.8, 7.0), facecolor=SURFACE)
+        axes = [fig.add_axes([0.10, 0.575, 0.875, 0.395]),
+                fig.add_axes([0.10, 0.085, 0.875, 0.395])]
+    else:
+        fig = plt.figure(figsize=(8.8, 10.4), facecolor=SURFACE)
+        axes = [fig.add_axes([0.10, 0.600, 0.875, 0.260]),
+                fig.add_axes([0.10, 0.283, 0.875, 0.260])]
 
     for ax, (title, rows) in zip(axes, data):
         ax.set_facecolor(SURFACE)
@@ -119,6 +127,12 @@ def main():
                      fontsize=7.5, color=INK_MUTED)
     axes[-1].set_xlabel("Network evaluations per sample  (= sampling steps)",
                         fontsize=9.5, color=INK_SECONDARY)
+
+    if a.bare:
+        os.makedirs(os.path.dirname(a.out), exist_ok=True)
+        fig.savefig(a.out, dpi=190, facecolor=SURFACE)
+        print(f"wrote {a.out} (bare)")
+        return
 
     fig.text(0.10, 0.982, "MNIST: every measured sampler at matched training budget",
              fontsize=13.5, color=INK_PRIMARY, ha="left", va="top")
