@@ -127,8 +127,9 @@ degradation as unexplained.
 \caption{FID on MNIST against sampling steps, which equal network evaluations.
 Shared architecture, optimiser, EMA, batch size and budget; identical evaluation
 code. 50\,000 samples per entry, floor 0.15. Mean $\pm$ sd over sampling seeds
-where repeats were run. \emph{This table is generated directly from the
-evaluation output, not transcribed.}}
+where repeats were run; a dash marks a cell not run, the 1000-step column having
+been restricted to the rows that enter the method comparison. \emph{Generated
+directly from the evaluation output, not transcribed.}}
 \label{tab:main}
 \setlength{\tabcolsep}{4pt}
 \resizebox{\textwidth}{!}{\input{../runs/tables_mnist_body.tex}}
@@ -162,11 +163,16 @@ not the order-of-magnitude advantage the submitted draft implies.
 
 \paragraph{The bridge against improved denoising diffusion.} Improved DDPM ---
 the learned reverse variance trained with the hybrid objective, not a cosine
-schedule alone --- reaches 1.93 at 1000 evaluations. The submitted manuscript
-reports 1.90 for the same baseline, and we take that agreement as evidence that
-our re-implementation of it is faithful rather than weakened. At matched budget
-the bridge reaches 1.06 and flow matching 1.02 at the same step count, so under
-a matched comparison improved denoising does not lead at high step counts.
+schedule alone --- was run with both of its samplers, since the learned variance
+is what makes ancestral sampling viable at few steps while DDIM is usually
+stronger in the low-step regime. Ancestral sampling reaches 1.93 at 1000
+evaluations and DDIM reaches 1.24 at 100, so the baseline's best result across
+its samplers is 1.24. The submitted manuscript reports 1.90 for this baseline at
+1000 steps, and we take the agreement with our 1.93 as evidence that the
+re-implementation is faithful rather than weakened. At matched budget the bridge
+reaches 1.06 and flow matching 1.02, and at 10 evaluations the bridge reaches
+3.39 against the baseline's 7.82. Under a matched comparison improved denoising
+does not lead at any step count tested.
 
 \paragraph{The DDIM samplers collapse past 100 evaluations.}
 Both DDIM curves collapse beyond 100 evaluations, reaching 16.30 and 13.26 at
