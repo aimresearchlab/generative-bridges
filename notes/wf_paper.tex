@@ -62,8 +62,8 @@ insert or substitute phonetic content, produce spurious breathing, and introduce
 tonal artefacts; these hallucinations are described in the literature as an
 open problem \cite{comparison2026,artifree2025}.
 
-Both costs are usually treated as intrinsic to generative modelling. We argue
-they follow instead from the choice of driving process. Existing diffusion and
+We attribute both costs to the choice of driving process rather than to
+generative modelling itself. Existing diffusion and
 bridge formulations for speech --- score-based models, Schr\"odinger bridges and
 their one-step variants --- all drive the transport with Brownian motion, whose
 state space is $\R^n$. When the estimated quantity is a time--frequency mask,
@@ -109,7 +109,7 @@ The definition constrains the driver only to be c\`adl\`ag. Its Gaussian
 specialisation recovers diffusion bridges; the present paper uses a driver that
 the definition admits but that no existing speech system employs.
 
-\subsection{The Gaussian case is what current systems implement}
+\subsection{The Gaussian case}
 
 With $Z_t=\sigma W_t$ and $t=sT$, writing $\gamma^2=\sigma^2T$, the bridge
 marginal conditional on the endpoints is
@@ -125,7 +125,7 @@ bridges and Schr\"odinger bridges for speech differ in their schedule,
 parameterisation and training objective, but all place the state in $\R^n$ and
 all inherit \eqref{eq:gauss}'s unbounded support.
 
-\section{The support violation is real, and specific to masks}
+\section{Support violation in speech representations}
 \label{sec:premise}
 
 \paragraph{Measurement.} We take real speech, add noise at $5$\,dB, and form
@@ -154,10 +154,10 @@ Log magnitude (control) & $\R$  & $0.00\%$ & $0$ \\
 \end{tabular}
 \end{table}
 
-\paragraph{Why the mask is the case that matters.} The magnitude constraint has
-an escape: taking logarithms removes it, which is what existing systems do, and
-the control row of Table~\ref{tab:premise} confirms the escape works. A mask
-admits no such transformation. It is bounded on both sides, and the standard
+\paragraph{The mask case.} The magnitude constraint is removed by taking logarithms, which is the
+representation existing systems use and which the control row of
+Table~\ref{tab:premise} confirms is unconstrained. No such transformation exists
+for a mask. It is bounded on both sides, and the standard
 device --- a sigmoid on the network output --- is a projection applied after the
 fact, not a process that respects the constraint.
 
@@ -166,7 +166,7 @@ time--frequency bins fall in the lowest decile and $77\%$ of mass lies within
 $0.05$ of $0$ or $1$. A transport that overshoots does so into the region where
 the target places most of its mass.
 
-\section{Which property of the driver matters}
+\section{Boundedness and monotonicity}
 \label{sec:which}
 
 A driver matched to $[0,1]$ may be bounded, monotone, or both. The gamma and
@@ -194,11 +194,11 @@ $8.0$ & $0.012$ & $0.102$ & $0.019$ & $8.3\times$ \\
 \end{table}
 
 Forbidding decrease costs between $8$ and $15$ times, against the factor of two
-to three by which the gamma bridge trails a free Gaussian. The subordinator
-families are therefore the wrong choice for a quantity that is not ordered
-relative to its starting point, and a mask is not: a given bin's ideal mask may
-lie above or below any initial estimate. The requirement is a driver that is
-bounded and \emph{not} monotone.
+to three by which the gamma bridge trails a free Gaussian. Subordinator-driven
+bridges are therefore unsuited to a quantity that is not ordered relative to its
+starting point. A mask is not so ordered: a given bin's ideal value may lie
+above or below any initial estimate. The requirement is a driver that is bounded
+and non-monotone.
 
 \section{The Wright--Fisher bridge}
 \label{sec:wf}
@@ -217,13 +217,12 @@ increments and the L\'evy results of \cite{companion} do not reach it. Its
 paths are not monotone.
 
 With $\theta_1=\theta_2=0$ both boundaries absorb, and the law of $X_T$ carries
-atoms at $0$ and $1$ together with a density between. This matters for
-admissibility: the requirement $\Psi\ll\mu_{Z_T}$ fails for a mask distribution
-with boundary atoms if the boundaries are inaccessible, which is the case under
-strong mutation. The neutral process is the member of the family whose terminal
-law has the same atomic structure as the data.
+atoms at $0$ and $1$ together with a density between. Admissibility depends on this. The requirement $\Psi\ll\mu_{Z_T}$ fails for a
+mask distribution with boundary atoms when the boundaries are inaccessible,
+which is the case under strong mutation. The neutral process is the member of
+the family whose terminal law has the same atomic structure as the data.
 
-\subsection{Transition kernel without the series expansion}
+\subsection{Transition kernel}
 
 The transition density of the Wright--Fisher diffusion is available only as an
 infinite mixture over a death process \cite{griffiths1979,jenkins2017}. The
@@ -273,7 +272,7 @@ alternates evaluating $f_\theta$ and sampling Proposition~\ref{prop:wf} with the
 estimate in place of the unknown endpoint, exactly as ancestral diffusion
 sampling substitutes a point estimate for the posterior.
 
-\section{Why the bounded driver needs fewer steps}
+\section{Sampling efficiency}
 \label{sec:why}
 
 \begin{table}[h]
@@ -305,33 +304,30 @@ $\frac{\hat y-\xib_s}{1-s}$ must first reverse the excursion and then re-approac
 Given enough steps the correction completes, which is why the Gaussian catches
 up at fifty. The Wright--Fisher transport cannot overshoot, because its
 diffusion coefficient $\sqrt{x(1-x)}$ vanishes at both boundaries, so the steps
-it does take are not spent undoing earlier ones. The advantage is therefore
-largest where the step budget is smallest, which is the regime in which
-generative enhancement is currently impractical.
+it does take are not spent undoing earlier ones. The advantage is largest at small step budgets, where generative enhancement is
+currently impractical.
 
-The two crossing at fifty steps is consistent with this account rather than a
-contradiction of it: an unconstrained transport with a sufficient budget is the
-more flexible of the two, and the constraint stops paying once the budget is
-ample.
+The crossover at fifty steps follows from the same account. An unconstrained
+transport is the more flexible of the two given a sufficient budget, and the
+constraint ceases to pay once the budget is ample.
 
-\section{Application: mask-domain enhancement}
+\section{Mask-domain enhancement}
 \label{sec:exp}
 
-\subsection{Why the mask domain excludes hallucination}
+\subsection{Support of the estimate}
 
 Let $\hat S=m\odot X$ with $m\in[0,1]$ and $X$ the observed noisy spectrogram.
 Then $|\hat S_{tf}|\le|X_{tf}|$ for every bin, so the estimate is supported on
-the observation. A mask-domain generative model can suppress and it can fail to
-suppress, but it cannot place energy where the input had none. The phonetic
+the observation. A mask-domain generative model can suppress or fail to suppress; it cannot place
+energy where the input had none. The phonetic
 insertions and spurious vocalisations reported for waveform and complex-spectrum
 diffusion \cite{comparison2026,artifree2025} are not available to it.
 
-This is a property of the output parameterisation rather than of the driver.
-What the driver supplies is the ability to model a distribution over masks
-without leaving $[0,1]$, so that the guarantee is not obtained by projecting a
-model that does not respect it.
+The guarantee belongs to the output parameterisation rather than to the driver.
+The driver supplies a distribution over masks that does not leave $[0,1]$, so
+the guarantee is not obtained by projecting a model that violates it.
 
-\subsection{Planned experiment}
+\subsection{Protocol}
 
 \emph{To be run.} Enhancement on VoiceBank--DEMAND with a mismatched evaluation
 set, since mismatch is where the generative route earns its cost. The transport
@@ -346,10 +342,10 @@ been reported. All share architecture, budget and evaluation code.
 
 Measures: PESQ, ESTOI and SI-SDR for quality; network evaluations and wall-clock
 for cost; and, for hallucination, word and phoneme error rate under a fixed ASR
-system, which is the measure on which mask-domain models should be
-unimprovable-upon by construction and waveform models should not.
+system, on which mask-domain models are constrained by construction and waveform models
+are not.
 
-\subsection{What would falsify the claim}
+\subsection{Falsification}
 
 If a Gaussian mask bridge matches the Wright--Fisher bridge at five to ten steps
 on real data, the mechanism of Section~\ref{sec:why} does not survive contact
@@ -362,9 +358,9 @@ purchased at a price the application will not pay.
 
 The results in Tables~\ref{tab:mono} and~\ref{tab:wf} are one-dimensional, use
 exact conditional expectations rather than a trained network, and treat
-time--frequency bins independently. They establish a mechanism and its size in a
-setting where nothing else can be responsible; they do not establish that the
-mechanism survives at spectrogram scale with a learned estimator. The speech
+time--frequency bins independently. They isolate a mechanism and measure its size in a setting where nothing else
+can account for the difference. They do not establish that it survives at
+spectrogram scale with a learned estimator. The speech
 measurements of Table~\ref{tab:premise} use a small corpus and synthetic
 additive noise. No enhancement experiment has been run.
 
