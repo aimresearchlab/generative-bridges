@@ -8,7 +8,7 @@ set -x
 cd "$(dirname "$0")"
 LOCK=runs/.gpu.lock
 while { [ -e "$LOCK" ] && kill -0 "$(cat "$LOCK" 2>/dev/null)" 2>/dev/null; } \
-   || pgrep -f "bridges\.(evaluate|train|flowmatch|ddpm_baseline|improved_ddpm)" > /dev/null; do
+   || pgrep -f "[.]venv/bin/python -m bridges\\.(evaluate|train|flowmatch|ddpm_baseline|improved_ddpm)" > /dev/null; do
   sleep 120
 done
 echo $$ > "$LOCK"

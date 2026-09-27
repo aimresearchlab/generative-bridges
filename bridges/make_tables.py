@@ -159,6 +159,17 @@ def main():
     if tex is None:
         print("no sweep data found"); return
     open(a.out_tex, "w").write(tex + "\n")
+    # bare tabular for \input into a document that supplies its own float/caption
+    body = []
+    keep = False
+    for line in tex.splitlines():
+        if line.startswith(r"\begin{tabular}"):
+            keep = True
+        if keep:
+            body.append(line)
+        if line.startswith(r"\end{tabular}"):
+            break
+    open(a.out_tex.replace(".tex", "_body.tex"), "w").write("\n".join(body) + "\n")
     open(a.out_md, "w").write(md + "\n")
     print(md)
     print(f"\nwrote {a.out_tex} and {a.out_md}")

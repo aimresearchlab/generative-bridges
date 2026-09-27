@@ -106,5 +106,101 @@
     "n_samples": 50000,
     "eta": 1.0,
     "ckpt_step": 40000
+  },
+  {
+    "sampler": "ddpm_ancestral",
+    "n_steps": 1,
+    "nfe": 1,
+    "fid_train": 282.1949894370306,
+    "fid_test": 283.2131151940604,
+    "gen_seconds": 10.84022045135498,
+    "imgs_per_s": 4612.452322752368,
+    "n_samples": 50000,
+    "eta": 1.0,
+    "ckpt_step": 40000
+  },
+  {
+    "sampler": "ddpm_ancestral",
+    "n_steps": 2,
+    "nfe": 2,
+    "fid_train": 284.25169905569646,
+    "fid_test": 285.2944557714652,
+    "gen_seconds": 17.949829816818237,
+    "imgs_per_s": 2785.5417299361857,
+    "n_samples": 50000,
+    "eta": 1.0,
+    "ckpt_step": 40000
+  },
+  {
+    "sampler": "ddpm_ancestral",
+    "n_steps": 5,
+    "nfe": 5,
+    "fid_train": 18.143697546296323,
+    "fid_test": 18.722489863493053,
+    "gen_seconds": 44.56351637840271,
+    "imgs_per_s": 1121.9940449814242,
+    "n_samples": 50000,
+    "eta": 1.0,
+    "ckpt_step": 40000
+  },
+  {
+    "sampler": "ddpm_ancestral",
+    "n_steps": 10,
+    "nfe": 10,
+    "fid_train": 10.850193855412499,
+    "fid_test": 11.606717440268568,
+    "gen_seconds": 88.30400252342224,
+    "imgs_per_s": 566.2257493564657,
+    "n_samples": 50000,
+    "eta": 1.0,
+    "ckpt_step": 40000
+  },
+  {
+    "sampler": "ddpm_ancestral",
+    "n_steps": 20,
+    "nfe": 20,
+    "fid_train": 6.867279741333505,
+    "fid_test": 7.5354992289685185,
+    "gen_seconds": 175.76241970062256,
+    "imgs_per_s": 284.47491838793167,
+    "n_samples": 50000,
+    "eta": 1.0,
+    "ckpt_step": 40000
+  },
+  {
+    "sampler": "ddpm_ancestral",
+    "n_steps": 50,
+    "nfe": 50,
+    "fid_train": 3.94496859934128,
+    "fid_test": 4.565127696442403,
+    "gen_seconds": 439.17497062683105,
+    "imgs_per_s": 113.84983968607179,
+    "n_samples": 50000,
+    "eta": 1.0,
+    "ckpt_step": 40000
+  },
+  {
+    "sampler": "ddpm_ancestral",
+    "n_steps": 100,
+    "nfe": 100,
+    "fid_train": 3.191613689675961,
+    "fid_test": 3.7937690477858723,
+    "gen_seconds": 877.4824476242065,
+    "imgs_per_s": 56.98119675826628,
+    "n_samples": 50000,
+    "eta": 1.0,
+    "ckpt_step": 40000
+  },
+  {
+    "sampler": "ddpm_ancestral",
+    "n_steps": 200,
+    "nfe": 200,
+    "fid_train": 3.0695971945808367,
+    "fid_test": 3.6288636329307735,
+    "gen_seconds": 1751.0694501399994,
+    "imgs_per_s": 28.553978824770464,
+    "n_samples": 50000,
+    "eta": 1.0,
+    "ckpt_step": 40000
   }
 ]
