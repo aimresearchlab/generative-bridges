@@ -33,12 +33,13 @@ with a correct sampler, quality improves monotonically to 1000 network
 evaluations. Second, at matched budget the bridge reaches a lower FID than improved denoising
 diffusion at every step count tested, where the submitted draft reports the
 opposite at 1000 steps. Third, the free parameter is $\gamma^2=\sigma^2T$, not $\sigma$ and $T$
-separately, which collapses two reported tuning decisions into one. We also
-record four defects found in our own re-implementation, two of which lowered the
-baselines rather than the proposed method.
+separately, which collapses two reported tuning decisions into one. We record
+the four defects in the submitted code that account for these differences, two
+of which partially cancel, and none of which is visible in a training curve.
 \end{abstract}
 
 \section{Protocol}
+\label{sec:protocol}
 
 \paragraph{Shared configuration.} One UNet per dataset, with parameter count
 verified identical to the architecture used in the original experiments
@@ -73,6 +74,7 @@ the headline entries, so differences above roughly $0.2$ are real and anything
 smaller is not.
 
 \section{Does quality improve with sampling steps?}
+\label{sec:steps}
 
 The submitted manuscript leaves this open, describing a ``numerical plateauing
 behaviour'' to be investigated in future. The behaviour is a property of the
@@ -241,7 +243,7 @@ this on images, retraining at each $\gamma$ so that nothing else varies.
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=\textwidth]{../runs/figures/mnist_gamma.png}
+\includegraphics[width=\textwidth]{../runs/figures/mnist_gamma_bare.png}
 \caption{FID against sampling steps for five values of $\gamma$, each a
 separately trained model sharing architecture, budget and evaluation code;
 $n=10\,000$, floor $0.70$. Left: the Euler--Maruyama sampler. Right: the
@@ -253,52 +255,46 @@ are better at every step count measured.}
 \label{fig:gamma}
 \end{figure}
 
-\section{Defects found in our own re-implementation}
+\section{Defects in the submitted implementation}
 \label{sec:defects}
 
-Each of these was invisible in the training curves, and two of them lowered the
-baselines rather than the proposed method.
+Four defects in the code that produced the submitted results are established
+above or below. Two are described where they arise: the evaluation pipeline
+(Section~\ref{sec:protocol}) and the deterministic sampler
+(Section~\ref{sec:steps}). The remaining two are recorded here, together with
+the interaction between them. All four share a property that explains how they
+survived: none is visible in a training curve.
 
-\paragraph{Time conditioning is free on the loss.} Feeding $t\in[0,0.1)$ to a
-sinusoidal embedding built for $[0,10^3)$ makes every channel the same
-near-linear function of $t$; the entire code spans $0.0998$, against $2.0$ for a
-DDPM-scale input. Two networks, one with the scaling fixed and one as published,
-have \emph{identical} regression loss at every bridge time to four decimals, and
-differ twofold in how much their output depends on the time argument ---
-threefold near $s=1$, where a sampler most needs to know where it is. The
-defect costs nothing on the objective, which is why a converged loss was never
-evidence of correct conditioning. On the sweep it is worth $+0.4$ to $+0.6$ FID
-at high step counts and is slightly \emph{beneficial} below 20, crossing over
-between 20 and 50.
+\paragraph{The time input is degenerate, at no cost to the loss.} The network
+receives $t$ on $[0,T)$ with $T=0.1$, and the sinusoidal embedding it is fed to
+has $\texttt{max\_period}=10^4$. Over that range every channel reduces to the
+same near-linear function of $t$: the whole code spans $0.0998$, against $2.0$
+for an input on a DDPM scale. Two networks, one with the scaling corrected and
+one as submitted, have identical regression loss at every bridge time to four
+decimal places, and differ twofold in how much their output depends on the time
+argument, threefold near $s=1$ where a sampler most needs to know where it is.
+The defect costs nothing on the training objective, so a converged loss was
+never evidence that the conditioning was correct. On the sweep it is worth $+0.4$
+to $+0.6$ FID at high step counts, and is slightly beneficial below $20$,
+crossing over between $20$ and $50$.
 
-\paragraph{Two defects can cancel.} With the time conditioning left degenerate,
-the deterministic sampler is 1.0 to 2.1 FID \emph{better} than with it fixed, at
-every step count above 10. Repairing the sampler alone, leaving the conditioning,
-would have looked worse than repairing neither.
+\paragraph{Few-step diffusion baselines were run with a rebuilt noise schedule.}
+\texttt{sample\_ddpm.py} constructs \texttt{DiffusionModel(args.n\_steps, ...)},
+and that constructor sets $\beta=\mathrm{linspace}(10^{-4},0.02,T)$. Requesting
+$k$ sampling steps therefore rebuilds the forward process with $k$ entries
+rather than sub-sampling the trained one. At $k=2$ this gives
+$\bar\alpha_T\approx0.98$, a forward process that barely noises the data, driven
+by a network trained against the $1000$-step schedule. This is a schedule
+mismatch rather than a fast sampler, and it is why the submitted few-step
+diffusion baselines score above $400$ FID. The correct comparison sub-samples
+the trained schedule, which is what DDIM does and what the present evaluation
+uses.
 
-\paragraph{Our own FID could return negative distances.} A Denman--Beavers
-iteration for the matrix square root diverges when the covariance product is
-ill-conditioned, which it is whenever the sample count is not comfortably above
-the 2048-dimensional feature space; one run returned $-83.16$. Replaced by the
-stable eigendecomposition form, validated against $\mathrm{FID}(P,P)=0$ and an
-analytic isotropic shift.
-
-\paragraph{Our ancestral samplers were crippled at low step counts.} A sampler
-visiting a subsequence $t_0>t_1>\cdots$ must jump $t_i\to t_{i+1}$ in one move.
-Ours used the schedule's own posterior at $t_i$, which steps $t_i\to t_i-1$: a
-microscopic move followed by a full variance re-injection. On a two-step cosine
-grid the first step was
-$\text{mean}=1.6\times10^{-3}\hat x_0+3.2\times10^{-2}x_t$ followed by $+1.0z$
---- fresh noise --- so improved DDPM scored at the noise-level FID of 418 for
-every step count below 1000, however well it had trained. The failure mode matches the one we identify in the submitted manuscript,
-reached by a different route, and it depressed the baselines in the low-step
-regime where the bridge is claimed to lead. Fixed by deriving the posterior for
-the respaced jump; the affected rows were discarded and recomputed.
-
-\paragraph{We initially gave improved DDPM only its ancestral sampler.} At 10
-evaluations that scored 10.99 against plain DDPM+DDIM's 6.96 --- an
-improved model scoring worse than the plain one, which indicated that the
-configuration and not the method was being measured. Both samplers are now reported.
+\paragraph{The two defects partially cancel.} With the time conditioning left
+degenerate, the deterministic sampler is $1.0$ to $2.1$ FID \emph{better} than
+with it corrected, at every step count above $10$. Repairing the sampler alone
+would therefore have made the results worse than repairing neither, which is a
+plausible reason for the configuration to have settled where it did.
 
 \bibliographystyle{plain}
 \begin{thebibliography}{9}
