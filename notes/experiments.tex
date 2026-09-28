@@ -241,9 +241,15 @@ this on images, retraining at each $\gamma$ so that nothing else varies.
 
 \begin{figure}[t]
 \centering
-\fbox{\parbox[c][5cm][c]{0.9\textwidth}{\centering\itshape Figure pending: the $\gamma$ sweep is running (four additional models, one per value).}}
-\caption{FID against sampling steps for several $\gamma$, each a separately
-trained model.}
+\includegraphics[width=\textwidth]{../runs/figures/mnist_gamma.png}
+\caption{FID against sampling steps for five values of $\gamma$, each a
+separately trained model sharing architecture, budget and evaluation code;
+$n=10\,000$, floor $0.70$. Left: the Euler--Maruyama sampler. Right: the
+deterministic Euler sampler. The deterministic sampler's penalty grows with
+$\gamma$ and vanishes at $\gamma=0.1$, where the two samplers become
+indistinguishable, as the omitted score term $\tfrac{\gamma^2}{2}\nabla\log p_s$
+predicts. The published setting $\gamma=0.3162$ is not optimal: smaller values
+are better at every step count measured.}
 \label{fig:gamma}
 \end{figure}
 
