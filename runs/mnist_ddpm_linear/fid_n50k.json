@@ -202,5 +202,17 @@
     "n_samples": 50000,
     "eta": 1.0,
     "ckpt_step": 40000
+  },
+  {
+    "sampler": "ddpm_ancestral",
+    "n_steps": 1000,
+    "nfe": 1000,
+    "fid_train": 3.0488268058476535,
+    "fid_test": 3.5808841703216103,
+    "gen_seconds": 8813.899239063263,
+    "imgs_per_s": 5.67285813506917,
+    "n_samples": 50000,
+    "eta": 1.0,
+    "ckpt_step": 40000
   }
 ]
