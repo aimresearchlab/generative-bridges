@@ -1,18 +1,23 @@
 #!/bin/bash
 # CIFAR-10 sweeps at n = 50,000, the published protocol's sample count.
 #
-# Row set, trimmed from ten to six. One bridge sampler (Euler-Maruyama, the best
-# of the three at every MNIST step count measured), flow matching, and ancestral
-# sampling for the diffusion arms. DDIM is dropped for the two plain DDPM arms:
-# its collapse past 100 steps is documented on MNIST and repeating it here adds
-# nothing. It is KEPT for improved DDPM, because that is the baseline the
-# comparison rests on and its best MNIST configuration was DDIM at 100 steps
-# (1.24) rather than ancestral (2.02) -- reporting only the weaker sampler would
-# understate the one row that matters.
+# Row set, trimmed from ten to five. The cut follows the submitted manuscript's
+# own baselines: it compares against simple denoising (Ho et al., linear
+# schedule) and improved denoising (Nichol & Dhariwal, cosine schedule with a
+# learned variance). Plain DDPM with a cosine schedule and a fixed variance is
+# neither of those -- it is an intermediate introduced here -- so it is dropped,
+# and the linear arm is kept because it is what the manuscript calls simple
+# denoising.
 #
-# Cost at the estimated CIFAR inference rate: about 8 h per sampler for the full
-# grid, so roughly 48 h for six rows. Ordered so the three rows carrying the
-# headline comparison finish first.
+# One bridge sampler (Euler-Maruyama, the best of the three at every MNIST step
+# count measured) and flow matching. Ancestral sampling for the diffusion arms,
+# DDIM having collapsed past 100 steps on MNIST. DDIM is KEPT for improved DDPM,
+# the baseline the comparison rests on, whose best MNIST configuration was DDIM
+# at 100 steps (1.24) against ancestral (2.02); reporting only the weaker sampler
+# would understate the one row that matters by 40%.
+#
+# About 8 h per sampler for the full grid, so roughly 40 h for five rows, with
+# the three carrying the headline comparison finishing first.
 set -x
 cd "$(dirname "$0")"
 
@@ -58,7 +63,6 @@ $PY -m bridges.make_tables --dataset CIFAR-10 --prefix cifar10 --n_samples $N \
 echo "=== CIFAR HEADLINE THREE COMPLETE ==="
 
 sweep cifar10_improved    improved_ancestral
-sweep cifar10_ddpm_cosine ddpm_ancestral
 sweep cifar10_ddpm_linear ddpm_ancestral
 
 $PY -m bridges.make_tables --dataset CIFAR-10 --prefix cifar10 --n_samples $N \
