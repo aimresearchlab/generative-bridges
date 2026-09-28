@@ -259,6 +259,26 @@ re-enters and it deserves care.
 
 \section{Proposed head-to-head experiment}
 
+\begin{rem}[Status of this section, added later]
+The derivations above stand. This section does not, and is retained only as a
+record. Two things have since emerged. First, binomial thinning as a forward
+process on the natural numbers is not new: Blackout Diffusion (ICML 2023) builds
+a discrete-state diffusion from exactly this construction, and CountsDiff (2026)
+extends it to single-cell count data, so the Poisson bridge is not novel as an
+integer-valued generative model. What remains open is transport between two
+arbitrary count distributions, which those methods cannot express because they
+generate from the empty state. Second, and more consequential for this
+section's proposal: a subsequent ablation found that \emph{monotonicity}, not
+bounded support, is what costs a bridge accuracy. Forbidding a Gaussian bridge
+merely to decrease cost a factor of $8$ to $15$ in $1$-Wasserstein distance,
+against the factor of $2$ to $3$ by which the gamma bridge trailed a free
+Gaussian. Since gamma and Poisson bridges are driven by subordinators and are
+therefore monotone, they inherit that penalty, and are suited only to transports
+whose endpoints are genuinely ordered. For bounded but unordered data the
+appropriate driver is bounded and non-monotone; see the Wright--Fisher note.
+\end{rem}
+
+
 The framework's generality is currently asserted rather than demonstrated, which is
 the substance of reviewer point 7. The generality cannot win on MNIST or CIFAR-10:
 those are unconstrained real-valued supports, where the Brownian driver is the
