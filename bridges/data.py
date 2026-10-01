@@ -5,12 +5,13 @@ Convention
 Everything downstream works with float tensors in [-1, 1] at a 32x32 grid, and
 converts back to uint8 [0, 255] exactly once, at the boundary with FID.
 
-The original code mixed conventions: MNIST was normalised to [-1, 1] but
-CIFAR-10 was left in [0, 1] ("NOT normalising as we loose detail"), models were
-trained at 32x32 but sampled at 28x28, and generated images were written to PNG
-through matplotlib (which re-normalises each image independently) before being
-read back for FID.  Each of those is a silent distribution shift between train,
-sample and evaluate.  Here there is one scale and one grid.
+Three things are easy to vary by accident across a pipeline and each is a
+silent distribution shift between training, sampling and evaluation: the pixel
+range, the grid size, and whether a per-image normalisation is applied on the
+way to the metric.  Routing generated images through an image writer that
+rescales each one independently introduces the third without it being visible in
+any configuration file.  This module fixes one scale and one grid, and the
+conversion to uint8 happens exactly once, at the boundary with FID.
 """
 
 from __future__ import annotations
@@ -49,6 +50,17 @@ def load(dataset: str, root: str = "./data", split: str = "train") -> torch.Tens
     else:
         raise ValueError(dataset)
     return _to_tensor(arr)
+
+
+def labels(dataset: str, root: str = "./data", split: str = "train") -> torch.Tensor:
+    """Class labels for the split, in the same order as `load`."""
+    train = split == "train"
+    if dataset == "mnist":
+        return datasets.MNIST(root=root, train=train, download=False).targets.long()
+    if dataset == "cifar10":
+        return torch.tensor(datasets.CIFAR10(root=root, train=train,
+                                             download=False).targets).long()
+    raise ValueError(dataset)
 
 
 def to_uint8(x: torch.Tensor) -> torch.Tensor:

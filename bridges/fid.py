@@ -82,6 +82,26 @@ class InceptionStats:
 
 
 @torch.no_grad()
+def activations(x: torch.Tensor, device, batch_size: int = 128, stats=None,
+                max_n: int | None = None) -> torch.Tensor:
+    """Raw pool3 features, kept rather than reduced to a mean and covariance.
+
+    Precision/recall and KID need the individual points, not their first two
+    moments. `max_n` subsamples, because the k-NN manifolds those measures build
+    are O(n^2) in distance computations and are conventionally reported at
+    n = 10,000 or below.
+    """
+    stats = stats or InceptionStats(device)
+    if max_n is not None and len(x) > max_n:
+        g = torch.Generator().manual_seed(0)
+        x = x[torch.randperm(len(x), generator=g)[:max_n]]
+    out = []
+    for i in range(0, len(x), batch_size):
+        out.append(stats.net(D.to_uint8(x[i:i + batch_size]).to(device)).double())
+    return torch.cat(out)
+
+
+@torch.no_grad()
 def stats_from_tensor(x: torch.Tensor, device, batch_size: int = 128, stats=None):
     """x: float NCHW in [-1,1]. Returns (mu, sigma)."""
     stats = stats or InceptionStats(device)
