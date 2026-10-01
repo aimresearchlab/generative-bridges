@@ -173,3 +173,4 @@ data/
 # particular anything quoting the referee letter, which states that it is
 # confidential and for the authors' use, live outside it.
 notes/
+.scratch/
