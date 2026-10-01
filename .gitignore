@@ -167,3 +167,13 @@ thirdparty/
 runs/
 fid_cache/
 data/
+
+# Internal: drafts answering the referee letter, which the letter states is
+# confidential and for the authors' use. Kept out of the repository.
+notes/reviewer_response.*
+notes/objective_weighting.*
+notes/experiments_v1_backup.tex
+notes/*.aux
+notes/*.log
+notes/*.out
+notes/*.pdf

@@ -1,30 +1,34 @@
 #!/bin/bash
-# CIFAR-10 sweeps at n = 50,000, the published protocol's sample count.
+# CIFAR-10 at n = 50,000, the submitted protocol's sample count.
 #
-# Row set, trimmed from ten to five. The cut follows the submitted manuscript's
-# own baselines: it compares against simple denoising (Ho et al., linear
-# schedule) and improved denoising (Nichol & Dhariwal, cosine schedule with a
-# learned variance). Plain DDPM with a cosine schedule and a fixed variance is
-# neither of those -- it is an intermediate introduced here -- so it is dropped,
-# and the linear arm is kept because it is what the manuscript calls simple
-# denoising.
+# ROW ORDER IS DELIBERATE, so that stopping early still leaves a defensible
+# table rather than a one-sided one:
 #
-# One bridge sampler (Euler-Maruyama, the best of the three at every MNIST step
-# count measured) and flow matching. Ancestral sampling for the diffusion arms,
-# DDIM having collapsed past 100 steps on MNIST. DDIM is KEPT for improved DDPM,
-# the baseline the comparison rests on, whose best MNIST configuration was DDIM
-# at 100 steps (1.24) against ancestral (2.02); reporting only the weaker sampler
-# would understate the one row that matters by 40%.
+#   1. Improved denoising, ANCESTRAL. The submitted manuscript's main baseline,
+#      run with its stronger sampler. On CIFAR at n=2000 ancestral beats DDIM at
+#      both step counts measured (18.97 against 25.69 at 50, 38.26 against 47.06
+#      at 10) -- the reverse of MNIST, where DDIM won and an earlier version of
+#      this script was ordered accordingly. Running DDIM first would mean that an
+#      early stop represented the baseline by its weaker sampler, so the ordering
+#      is dataset specific.
+#   2. Flow matching at 1000 steps, the entry that decides whether the small
+#      terminal rise in the bridge row (8.88 at 200 to 9.23 at 1000) is shared
+#      with the modern baseline or specific to us.
+#   3. Improved denoising + DDIM, and simple denoising -- completing the row set
+#      of the submitted table. Neither carries a claim.
 #
-# About 8 h per sampler for the full grid, so roughly 40 h for five rows, with
-# the three carrying the headline comparison finishing first.
+# The bridge row is already complete and is not re-run; bridges.evaluate resumes
+# from whatever is in the output JSON, so nothing finished is repeated.
 set -x
 cd "$(dirname "$0")"
 
 LOCK=runs/.gpu.lock
 if [ -e "$LOCK" ] && kill -0 "$(cat "$LOCK" 2>/dev/null)" 2>/dev/null; then
   echo "another queue holds the lock"; exit 1; fi
-if pgrep -f "[.]venv/bin/python -m bridges" > /dev/null; then
+# Anchor the pattern to the start of the command line. Unanchored, it matches
+# any shell whose own arguments quote it -- including the one that wrote this
+# file -- and the queue refuses to start against a phantom worker.
+if pgrep -f "^[.]venv/bin/python -m bridges" > /dev/null; then
   echo "a worker is still alive; refusing to start"; exit 1; fi
 echo $$ > "$LOCK"
 trap 'rm -f "$LOCK"' EXIT INT TERM
@@ -32,6 +36,7 @@ trap 'rm -f "$LOCK"' EXIT INT TERM
 PY=.venv/bin/python
 GRID="1 2 5 10 20 50 100 200 1000"
 N=50000
+BRIDGE=cifar10_drift_g0.3162277660168379
 COOL_MIN=${COOL_MIN:-8}; COOL_ABOVE=${COOL_ABOVE:-70}; COOL_EVERY_H=${COOL_EVERY_H:-3}
 LAST_COOL=$(date +%s)
 cool () {
@@ -43,30 +48,29 @@ cool () {
   sleep $((COOL_MIN*60)); LAST_COOL=$(date +%s)
 }
 
+table () {
+  $PY -m bridges.make_tables --dataset CIFAR-10 --prefix cifar10 --n_samples $N \
+      --floor 0.15 --steps $GRID --pattern "fid_n50k*.json" --bridge_dir $BRIDGE \
+      --out_tex runs/tables_cifar10.tex --out_md runs/tables_cifar10.md \
+      > runs/tables_cifar10.log 2>&1
+}
+
 sweep () {  # <model dir> <samplers...>
   local M=$1; shift
   $PY -m bridges.evaluate --ckpt runs/$M/ckpt_040000.pt \
       --n_samples $N --batch_size 500 --compile --save_grid \
       --out runs/$M/fid_n50k.json --steps $GRID --samplers "$@" \
       >> runs/eval_cifar_n50k.log 2>&1
+  table
   cool
 }
 
-# headline three first
-sweep cifar10_g0316_t1000 euler
-sweep cifar10_flow        flow_euler
+sweep cifar10_improved improved_ancestral
+echo "=== STOP POINT A: table complete but for flow at 1000 ==="
+
+sweep cifar10_flow flow_euler
+echo "=== STOP POINT B: headline three complete, degradation question settled ==="
+
 sweep cifar10_improved    improved_ddim
-$PY -m bridges.make_tables --dataset CIFAR-10 --prefix cifar10 --n_samples $N \
-    --floor 0.15 --steps $GRID --pattern "fid_n50k*.json" \
-    --out_tex runs/tables_cifar10.tex --out_md runs/tables_cifar10.md \
-    > runs/tables_cifar10.log 2>&1
-echo "=== CIFAR HEADLINE THREE COMPLETE ==="
-
-sweep cifar10_improved    improved_ancestral
 sweep cifar10_ddpm_linear ddpm_ancestral
-
-$PY -m bridges.make_tables --dataset CIFAR-10 --prefix cifar10 --n_samples $N \
-    --floor 0.15 --steps $GRID --pattern "fid_n50k*.json" \
-    --out_tex runs/tables_cifar10.tex --out_md runs/tables_cifar10.md \
-    > runs/tables_cifar10.log 2>&1
 echo "=== CIFAR SWEEPS COMPLETE ==="

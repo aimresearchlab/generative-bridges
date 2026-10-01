@@ -5,7 +5,7 @@
 # estimate comes from scaling the measured MNIST inference rate by the ratio of
 # training rates, not from measuring CIFAR inference, and a three-day run should
 # not start on an extrapolation. It also should not start before the models are
-# known to have trained sensibly: a broken checkpoint would cost the same three
+# known to have trained sensibly: an unusable checkpoint would cost the same three
 # days and produce nothing.
 #
 # This script therefore stops after the check and prints what it found.
