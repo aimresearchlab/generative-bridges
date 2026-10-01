@@ -168,12 +168,8 @@ runs/
 fid_cache/
 data/
 
-# Internal: drafts answering the referee letter, which the letter states is
-# confidential and for the authors' use. Kept out of the repository.
-notes/reviewer_response.*
-notes/objective_weighting.*
-notes/experiments_v1_backup.tex
-notes/*.aux
-notes/*.log
-notes/*.out
-notes/*.pdf
+# Manuscript and response drafts are not kept here. This repository holds the
+# code and the instructions to reproduce the measurements; the write-ups, and in
+# particular anything quoting the referee letter, which states that it is
+# confidential and for the authors' use, live outside it.
+notes/

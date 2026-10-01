@@ -64,8 +64,16 @@ MNIST: substitute `--dataset mnist`.
 ```
 
 Results are appended to the output JSON after every `(sampler, n_steps)` entry
-and re-running skips entries already present, so a sweep can be interrupted and
-resumed without losing completed work.
+and re-running skips entries already present, so a sweep can be interrupted at
+any point and resumed by re-issuing the same command: it continues at the first
+unmeasured entry and repeats nothing.
+
+The Euler and deterministic-Euler samplers formerly took one network evaluation
+after the integration loop to read the endpoint while the record wrote
+`nfe = n_steps`. They now reuse the estimate computed at the last grid point,
+matching how the exact-posterior sampler was always counted. Measurements of
+those two samplers made before this change are charged one evaluation fewer than
+they spent and should be re-run.
 
 Samplers: `bridge` (exact Brownian-bridge posterior), `euler` (Euler-Maruyama),
 `euler_det` (the deterministic map) for bridge checkpoints; `flow_euler`,
