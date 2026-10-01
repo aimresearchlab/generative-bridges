@@ -1,6 +1,6 @@
 """Correct posterior coefficients for a respaced diffusion schedule.
 
-The bug this fixes
+What this module is for
 ------------------
 An ancestral sampler that visits a subsequence t_0 > t_1 > ... > t_{n-1} of the
 training timesteps must take the jump t_i -> t_{i+1} in one move. Using the
@@ -30,7 +30,7 @@ ab_s = alpha-bar[s] and ab_u = alpha-bar[u] (1 at the data end):
 At the final jump ab_u = 1, so c0 = 1, ct = 0 and var = 0: the sampler lands
 exactly on its own endpoint prediction, which is the behaviour a last step must
 have. DDIM was already correct because it references ab_prev at the next grid
-point directly; only the ancestral path was wrong.
+point directly, so only the ancestral path needs it.
 """
 
 from __future__ import annotations

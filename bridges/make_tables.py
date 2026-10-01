@@ -34,7 +34,7 @@ def collect(root: str, run_dir: str, sampler: str, n_samples: int | None = None,
     """-> {nfe: (fid_train_mean, sd, fid_test_mean, n_seeds, imgs_per_s)}
 
     `n_samples` filters strictly: FID is only comparable at a fixed sample
-    count, so mixing sweeps run at different n into one mean would be wrong.
+    count, so sweeps run at different n are not averaged together.
     """
     tr, te, sp = defaultdict(list), defaultdict(list), {}
     for path in sorted(glob.glob(os.path.join(root, run_dir, pattern))):
@@ -151,9 +151,14 @@ def main():
     p.add_argument("--out_md", default="runs/tables.md")
     p.add_argument("--pattern", default="fid_*.json",
                    help="which sweep files to read, e.g. fid_n50k*.json")
+    p.add_argument("--bridge_dir", default=None,
+                   help="run directory for the bridge rows, when it is not "
+                        "<prefix>_g0316_t1000 -- e.g. the drift-trained model")
     a = p.parse_args()
 
     runs = [(n, d.replace("mnist", a.prefix), s) for n, d, s in RUNS]
+    if a.bridge_dir:
+        runs = [(n, a.bridge_dir if "_g0316_t1000" in d else d, s) for n, d, s in runs]
     tex, md = build(a.root, a.steps, runs, a.dataset, a.n_samples, a.floor,
                     pattern=a.pattern)
     if tex is None:

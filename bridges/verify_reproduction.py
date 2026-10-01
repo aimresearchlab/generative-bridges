@@ -1,7 +1,7 @@
 """Is the re-implementation's `euler_det` arm bit-faithful to the original sampler?
 
 The attribution claim ("the published numbers are explained by the deterministic
-sampler plus degenerate time conditioning") only holds if the reproduction arm
+sampler plus the manuscript's time conditioning") only holds if the reproduction arm
 really is the original scheme. This drives both implementations with the same
 network and the same initial state and compares trajectories.
 

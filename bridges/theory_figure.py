@@ -138,7 +138,7 @@ def main():
         f"identical loss at every bridge time - the top curve is the same for both to four "
         f"decimals - yet differ twofold in time sensitivity, and threefold near s = 1 where a "
         f"sampler most needs to know where it is. A converged loss is therefore not evidence "
-        f"of correct time conditioning, which is how the defect went unnoticed."
+        f"of the time conditioning, so the loss curve does not reveal it."
     )
     fig.text(0.105, 0.272, "\n".join(textwrap.wrap(cap, 108)),
              fontsize=8.2, color=INK_SECONDARY, ha="left", va="top", linespacing=1.6)
