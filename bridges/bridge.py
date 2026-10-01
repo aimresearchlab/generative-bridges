@@ -23,8 +23,37 @@ Put s = t/T in [0, 1] and gamma^2 := sigma^2 * T.  Then
 *** (sigma, T) is a redundant parameterisation: training and sampling depend on
 them only through the single scalar gamma^2 = sigma^2 * T. ***
 
-The original code fixes sigma = 1 and tunes T, so the published "T = 0.1"
-is the statement gamma = sqrt(0.1) ~= 0.3162.  We expose `gamma` directly.
+Fixing sigma = 1 and tuning T, as the manuscript does, makes the reported
+"T = 0.1" the statement gamma = sqrt(0.1) ~= 0.3162.  `gamma` is exposed
+directly here so that the one free parameter is the one that is set.
+
+Parameterisation
+----------------
+The sampler never uses the endpoint estimate on its own; it uses the drift
+
+    b(xi_s, s) = (E[Y | xi_s] - xi_s) / (1 - s).
+
+Regressing yhat under a loss that is uniform in s therefore does not match what
+the sampler consumes: an endpoint error of size e becomes a drift error of size
+e / (1 - s), so the same yhat accuracy is worth 1/(1-s)^2 times as much near the
+data end.  Written the other way round, the drift loss equals the endpoint loss
+reweighted by 1/(1-s)^2, and the uniform endpoint loss is the drift loss with
+the terminal region discounted by up to four orders of magnitude.
+
+Measured on CIFAR-10 (runs/mse_by_s_cifar.json), the endpoint-trained network
+matches a velocity-trained one to three digits for s <= 0.8 and is 10x worse at
+s = 0.995, with the drift error rising from 0.23 to 7.2 along the path while the
+velocity-trained one stays between 0.23 and 0.70.
+
+`param="drift"` regresses the drift directly, against the conditional target
+
+    (y - xi_s) / (1 - s) = (y - x) - gamma sqrt(s / (1 - s)) eps,
+
+whose conditional mean is b.  At gamma = 0 this is exactly the conditional
+flow-matching objective.  For gamma > 0 the second term makes the target
+variance grow like gamma^2 s / (1 - s): the stochastic members of the family pay
+for their noise in gradient variance near the terminal time, which the
+deterministic member does not.
 
 Learning target
 ---------------
@@ -90,6 +119,11 @@ class BridgeConfig:
                                        # sinusoidal time embedding, so the
                                        # embedding sees the dynamic range it was
                                        # designed for (see unet.timestep_embedding)
+    param: str = "endpoint"            # what the network outputs: "endpoint" (yhat)
+                                       # or "drift" (bhat, the SDE drift). See the
+                                       # module docstring section "Parameterisation".
+    s_max: float = 0.999               # drift training draws s ~ U[0, s_max]; the
+                                       # target is singular at s = 1
 
 
 class GaussianBridge:
@@ -119,14 +153,30 @@ class GaussianBridge:
         return (1.0 - s_) * x + s_ * y + std * noise
 
     def training_loss(self, model, y: torch.Tensor, x: torch.Tensor | None = None):
-        """MSE between the true endpoint y and the network's estimate of E[Y|xi_s]."""
+        """Regress whatever `cfg.param` names, against its conditional target."""
         b = y.shape[0]
         if x is None:
             x = torch.randn_like(y)  # independent coupling Gamma = Phi (x) Psi
-        s = torch.rand(b, device=y.device, dtype=y.dtype)
+        hi = 1.0 if self.cfg.param == "endpoint" else self.cfg.s_max
+        s = torch.rand(b, device=y.device, dtype=y.dtype) * hi
         xi = self.sample_marginal(x, y, s)
         pred = model(xi, s * self.cfg.t_scale)
-        return torch.nn.functional.mse_loss(pred, y), {"s": s, "xi": xi, "pred": pred}
+        if self.cfg.param == "drift":
+            s_ = s.view(-1, *([1] * (y.ndim - 1)))
+            target = (y - xi) / (1.0 - s_)
+        else:
+            target = y
+        return (torch.nn.functional.mse_loss(pred, target),
+                {"s": s, "xi": xi, "pred": pred})
+
+    def endpoint(self, model, xi: torch.Tensor, s: float) -> torch.Tensor:
+        """Network output converted to an endpoint estimate, whatever it predicts."""
+        t_in = torch.full((xi.shape[0],), s * self.cfg.t_scale,
+                          device=xi.device, dtype=xi.dtype)
+        out = model(xi, t_in)
+        if self.cfg.param == "drift":
+            return xi + (1.0 - s) * out
+        return out
 
     # ---------------------------------------------------------------- sampling
 
@@ -211,8 +261,7 @@ class GaussianBridge:
         for i in it:
             s = float(grid[i])
             u = float(grid[i + 1])
-            t_in = torch.full((xi.shape[0],), s * self.cfg.t_scale, device=device, dtype=xi.dtype)
-            yhat = model(xi, t_in)
+            yhat = self.endpoint(model, xi, s)
             last = i == n_steps - 1
             xi = self.step(
                 xi, yhat, s, u, sampler=sampler,
@@ -224,11 +273,12 @@ class GaussianBridge:
             # xi_1 = Y by construction, and the network's estimate of it is yhat.
             # For `bridge` with u = 1 the step already returns exactly yhat.
             if sampler in ("euler", "euler_det"):
-                # the Euler grid stops at 1 - eps, leaving residual bridge noise on
+                # The Euler grid stops at 1 - eps, leaving residual bridge noise on
                 # xi; report the endpoint estimate instead, which is the quantity
-                # the scheme is defined to produce.
-                s_last = float(grid[-1])
-                t_in = torch.full((xi.shape[0],), s_last * self.cfg.t_scale,
-                                  device=device, dtype=xi.dtype)
-                return model(xi, t_in)
+                # the scheme is defined to produce.  That estimate is the one
+                # already computed inside the loop at the last grid point, so the
+                # count of network evaluations stays equal to n_steps -- a fresh
+                # call here would have given this sampler n_steps + 1 against the
+                # n_steps every other row is charged.
+                return yhat
         return xi

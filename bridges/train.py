@@ -24,9 +24,17 @@ def main():
     p.add_argument("--warmup", type=int, default=500)
     p.add_argument("--gamma", type=float, default=0.3162277660168379,
                    help="bridge noise scale; gamma^2 = sigma^2 * T (published: sigma=1, T=0.1)")
+    p.add_argument("--param", default="endpoint", choices=["endpoint", "drift"],
+                   help="what the network regresses: the endpoint E[Y|xi_s], or the "
+                        "SDE drift (E[Y|xi_s]-xi_s)/(1-s) that the sampler actually "
+                        "integrates. At gamma=0 the drift objective is conditional "
+                        "flow matching.")
+    p.add_argument("--s_max", type=float, default=0.999,
+                   help="upper limit of the s grid for drift training")
     p.add_argument("--t_scale", type=float, default=1000.0,
                    help="scale applied to s in [0,1] before the sinusoidal time embedding. "
-                        "Set to the paper's T (e.g. 0.1) to reproduce the degenerate conditioning.")
+                        "Set to the manuscript's T (e.g. 0.1) to reproduce its time conditioning, "
+                        "over which range the sinusoidal embedding is near-linear.")
     p.add_argument("--ema_decay", type=float, default=0.9999)
     p.add_argument("--seed", type=int, default=0)
     p.add_argument("--ckpt_every", type=int, default=10000)
@@ -55,7 +63,8 @@ def main():
     if args.compile:
         model = torch.compile(model)
 
-    bridge = GaussianBridge(BridgeConfig(gamma=args.gamma, t_scale=args.t_scale))
+    bridge = GaussianBridge(BridgeConfig(gamma=args.gamma, t_scale=args.t_scale,
+                                     param=args.param, s_max=args.s_max))
     opt = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.weight_decay,
                             betas=(0.9, 0.999))
 

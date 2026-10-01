@@ -22,7 +22,8 @@ import torch
 
 from .bridge import BridgeConfig, GaussianBridge
 from . import data as D
-from .fid import InceptionStats, frechet_distance, real_stats, stats_from_tensor
+from .fid import (InceptionStats, activations, frechet_distance, real_stats,
+                  stats_from_tensor)
 from .unet import build_unet
 
 
@@ -48,7 +49,10 @@ def make_scheme(targs):
         from .ddpm_baseline import Diffusion
         d = Diffusion(targs["timesteps"], targs["schedule"], "cuda")
         return d, ["ddim", "ddpm_ancestral"]   # default; an explicit --samplers wins
-    return GaussianBridge(BridgeConfig(gamma=targs["gamma"], t_scale=targs["t_scale"])), None
+    return GaussianBridge(BridgeConfig(
+        gamma=targs["gamma"], t_scale=targs["t_scale"],
+        param=targs.get("param", "endpoint"),
+        s_max=targs.get("s_max", 0.999))), None
 
 
 @torch.no_grad()
@@ -99,6 +103,12 @@ def main():
     p.add_argument("--raw_weights", action="store_true", help="use non-EMA weights")
     p.add_argument("--save_grid", action="store_true")
     p.add_argument("--compile", action="store_true")
+    p.add_argument("--diversity", type=int, default=0, metavar="N",
+                   help="also report precision/recall, density/coverage and KID "
+                        "using N generated and N real points. FID mixes fidelity "
+                        "and coverage into one scalar; these separate them. The "
+                        "k-NN manifolds are O(N^2), so N=10000 is the practical "
+                        "ceiling and the conventional reporting point.")
     args = p.parse_args()
     # did the caller name samplers, or are we on the default list?
     args.samplers_explicit = any(a.startswith("--samplers") for a in __import__("sys").argv)
@@ -112,6 +122,7 @@ def main():
         args.samplers = forced
     print(f"loaded {args.ckpt} (step {step}, dataset {dataset}, "
           f"method {targs.get('method', 'bridge')}, gamma {targs.get('gamma', 0.0):.4f}, "
+          f"param {targs.get('param', 'endpoint')}, "
           f"t_scale {targs['t_scale']})", flush=True)
     if args.compile:
         model = torch.compile(model)
@@ -120,6 +131,12 @@ def main():
     mu_tr, sig_tr = real_stats(dataset, "train", device, stats=stats)
     mu_te, sig_te = real_stats(dataset, "test", device, stats=stats)
     print("real statistics ready", flush=True)
+
+    real_act = None
+    if args.diversity:
+        real_act = activations(D.load(dataset, split="train"), device,
+                               batch_size=250, stats=stats, max_n=args.diversity)
+        print(f"real activations for diversity: {tuple(real_act.shape)}", flush=True)
 
     out_path = args.out or os.path.join(os.path.dirname(args.ckpt),
                                         f"fid_sweep_step{step}.json")
@@ -146,6 +163,14 @@ def main():
             "imgs_per_s": args.n_samples / gen_s,
             "n_samples": args.n_samples, "eta": args.eta, "ckpt_step": step,
         }
+        if args.diversity:
+            from .metrics import kid, precision_recall
+            fr = activations(x, device, batch_size=250, stats=stats,
+                             max_n=args.diversity)
+            rec.update(precision_recall(real_act, fr))
+            rec.update(kid(real_act, fr))
+            rec["diversity_n"] = min(args.diversity, len(fr))
+            del fr; torch.cuda.empty_cache()
         results.append(rec)
         json.dump(results, open(out_path, "w"), indent=2)
         print(json.dumps({k: (round(v, 3) if isinstance(v, float) else v)
