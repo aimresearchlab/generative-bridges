@@ -99,9 +99,22 @@ Three samplers are provided:
                 the same dynamics.
 
 Note on `bridge`: replacing the posterior pi_s(dy) by a point mass at its mean
-yhat mirrors DDPM/DDIM ancestral sampling and under-disperses by
-Var[Y | xi_s].  Prop. 2.13 of the paper describes exactly that quantity; a
-learned variance head could restore it.  See `GaussianBridge.step` for the hook.
+yhat under-disperses, and by an amount the law of total variance gives exactly.
+The true step variance is
+
+    Var[xi_u | xi_s] = gamma^2 (u-s)(1-u)/(1-s)        <- kept
+                     + ((u-s)/(1-s))^2 Var[Y | xi_s]   <- dropped by the point mass
+
+Prop. 2.13 of the paper is about that second term: a supermartingale in the
+Loewner order, vanishing at the terminal time, and equal to Var[Y] at s = 0
+because xi_0 is independent of Y.  Pass `var_profile`, a callable s -> scalar,
+to restore an isotropic version of it; the training objective already estimates
+the quantity, since E||y - f(xi_s,s)||^2 -> tr Var[Y|xi_s]/n at the L^2
+projection.
+
+The deficit is specific to this sampler.  `euler` discretises the SDE whose
+drift is already (E[Y|xi_s] - xi_s)/(1-s), makes no point-mass approximation,
+and converges as the grid refines; `var_profile` is ignored there.
 """
 
 from __future__ import annotations
@@ -241,6 +254,7 @@ class GaussianBridge:
         generator: torch.Generator | None = None,
         x_init: torch.Tensor | None = None,
         progress=None,
+        var_profile=None,
     ) -> torch.Tensor:
         """Generate samples. Returns a tensor in the data's own scale ([-1, 1])."""
         if sampler == "euler_det" and eps <= 0.0:
@@ -267,6 +281,7 @@ class GaussianBridge:
                 xi, yhat, s, u, sampler=sampler,
                 eta=0.0 if (last and sampler == "bridge") else eta,
                 generator=generator,
+                var_yhat=None if var_profile is None else var_profile(s),
             )
 
         if return_endpoint and yhat is not None:

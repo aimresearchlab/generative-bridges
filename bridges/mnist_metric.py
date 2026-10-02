@@ -87,9 +87,10 @@ def stats_and_hist(net: Net, x: torch.Tensor, device, bs=1000):
         h = net.features(b)
         f.append(h.double().cpu()); p.append(net.fc2(h).argmax(1).cpu())
     f = torch.cat(f)
-    mu, sig = f.mean(0), torch.cov(f.T)
     hist = torch.bincount(torch.cat(p), minlength=10).double()
-    return mu.to(device), sig.to(device), hist / hist.sum()
+    # frechet_distance works in numpy, so the moments stay on the host; moving
+    # them to the device here is what made this raise rather than return.
+    return f.mean(0).numpy(), torch.cov(f.T).numpy(), hist / hist.sum()
 
 
 def evaluate(gen: torch.Tensor, device, root="./data") -> dict:
@@ -110,12 +111,40 @@ def evaluate(gen: torch.Tensor, device, root="./data") -> dict:
 def main():
     p = argparse.ArgumentParser()
     p.add_argument("--train_only", action="store_true")
+    p.add_argument("--ckpt", help="score a generative model instead of the test split")
+    p.add_argument("--sampler", default="euler")
+    p.add_argument("--steps", type=int, nargs="+", default=[10, 100])
+    p.add_argument("--n_samples", type=int, default=50000)
+    p.add_argument("--batch_size", type=int, default=500)
+    p.add_argument("--compile", action="store_true")
+    p.add_argument("--out")
     a = p.parse_args()
-    net = load_or_train("cuda")
+    load_or_train("cuda")
     if a.train_only:
         return
-    real = D.load("mnist", split="test")
-    print(json.dumps(evaluate(real, "cuda"), indent=2))
+    if not a.ckpt:
+        print(json.dumps(evaluate(D.load("mnist", split="test"), "cuda"), indent=2))
+        return
+
+    import torch
+    from .evaluate import generate, load_model, make_scheme
+    model, targs, step = load_model(a.ckpt, "cuda")
+    if a.compile:
+        model = torch.compile(model)
+    scheme, _ = make_scheme(targs)
+    rows = []
+    for n in a.steps:
+        x = generate(model, scheme, a.n_samples, "mnist", "cuda", n,
+                     a.sampler, 1.0, a.batch_size, 0)
+        r = evaluate(x, "cuda")
+        r.update({"ckpt": a.ckpt, "sampler": a.sampler, "n_steps": n,
+                  "n_samples": a.n_samples})
+        rows.append(r)
+        print(json.dumps({k: v for k, v in r.items() if not k.startswith("hist")}),
+              flush=True)
+    out = a.out or os.path.join(os.path.dirname(a.ckpt), "mnist_modes.json")
+    json.dump(rows, open(out, "w"), indent=2)
+    print(f"wrote {out}")
 
 
 if __name__ == "__main__":
