@@ -93,7 +93,7 @@ def main():
                  mew=1.0, ls=(0, (5, 2)), label=r"time input on $[0,0.1)$ as published",
                  zorder=3)
     ax2.set_ylabel("time sensitivity", fontsize=9.5, color=INK_SECONDARY)
-    ax2.set_xlabel(r"bridge time  $s = t/T$", fontsize=9.5, color=INK_SECONDARY)
+    ax2.set_xlabel(r"$t/T$", fontsize=9.5, color=INK_SECONDARY)
     ax2.set_title("The same two networks have identical loss at every s, and differ only here",
                   fontsize=10.5, color=INK_PRIMARY, loc="left", pad=8)
     ax2.set_xlim(-0.03, 1.03)
