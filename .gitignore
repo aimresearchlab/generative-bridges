@@ -164,9 +164,17 @@ thirdparty/
 
 # reimplementation artifacts
 .venv/
-runs/
 fid_cache/
 data/
+
+# Run artifacts are generated: checkpoints, grids, logs and result JSON stay
+# local. The per-run config.json is the exception -- it is the manifest that
+# pins every hyperparameter actually used, so it is tracked alongside the code
+# rather than left to depend on argparse defaults never drifting.
+runs/*
+!runs/*/
+runs/*/*
+!runs/*/config.json
 
 # Manuscript and response drafts are not kept here. This repository holds the
 # code and the instructions to reproduce the measurements; the write-ups, and in

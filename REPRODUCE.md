@@ -16,8 +16,20 @@ Memory is unified, so a second GPU job competes with the first for the same
 pool: every script here takes `runs/.gpu.lock` and refuses to start while
 another holds it. Run one at a time.
 
-Datasets download to `./data` on first use. `runs/` and `fid_cache/` are
-generated and are not tracked.
+Datasets download to `./data` on first use. Checkpoints, sample grids, logs
+and result JSON under `runs/` are generated and are not tracked.
+
+The one exception is `runs/<model>/config.json`, which *is* tracked. Each is
+written by the trainer at launch and records every hyperparameter the run
+actually used, including the ones left at their defaults. The command lines
+below reproduce those configs as the code stands today; the config files are
+the durable record, so check a rebuilt run against the committed one rather
+than trusting that a default has not moved:
+
+```bash
+diff <(jq -S 'del(.out)' runs/<model>/config.json) \
+     <(jq -S 'del(.out)' runs/<model>_rebuild/config.json)
+```
 
 ## Training
 
