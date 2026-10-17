@@ -14,7 +14,7 @@ conclusion.
 | --- | --- | --- | --- |
 | 1a | Optimiser not matched | **Confirmed** | Code fixed; manuscript sentence must change |
 | 1b | Improved-DDPM VLB 1000x light | **Confirmed** | Decision needed |
-| 2 | Objective ablation confounds sampler | **Not confirmed** — resolved from existing data | Relabel one figure |
+| 2 | Objective ablation confounds sampler | **Confirmed for the quoted pair**; underlying claim survives | Renumber 42.14 -> 38.93; figure fixed |
 | 3 | Resume reuse hazard | **Confirmed in code; results clean** | Guard added |
 | 4 | Architecture sentence | **Confirmed** | One-word manuscript fix |
 | 5 | Velocity-error units | Accepted in principle, not independently verified | Notation fix |
@@ -95,7 +95,11 @@ saved to `runs/fid_floors.json`.
 
 ## Resolved from existing data, favourably
 
-**(2) The objective effect is not a sampler artefact.** The `objsampler_n10k.json` pair
+**(2) The quoted pair does confound the sampler; the effect itself does not.**
+The appendix pair is `bridge`-sampled 42.14 against `euler`-sampled 23.23, so it varies
+objective and sampler together -- the review is right. Matched on euler at the same
+n=2000 the endpoint model gives **38.93**, so the honest number is 38.93 -> 23.23.
+The effect is robust under matching: The `objsampler_n10k.json` pair
 holds the sampler fixed. CIFAR-10, n=10,000, same gamma, time scaling and protocol:
 
 | sampler | NFE | endpoint | drift | effect of the objective alone |

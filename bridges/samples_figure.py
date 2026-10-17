@@ -84,7 +84,13 @@ def main():
     # different floors (14.60 against roughly 0.5) and overstate the gap. The
     # images are unaffected: both grids are the first 64 samples of one seeded
     # generator, so they are the same draws at either sample count.
-    fig_models([("Endpoint objective", f"{R}/{BR_E}/grids/bridge_0050.png", "FID 42.1"),
+    #
+    # Both panels use the SAME sampler (euler).  Showing the endpoint model
+    # under its own best sampler (`bridge`, FID 42.14) against the drift model
+    # under euler would vary the objective and the sampler at once, which is
+    # not the ablation this figure claims to show.  Matched on euler the pair
+    # is 38.93 -> 23.23, and the difference is the objective alone.
+    fig_models([("Endpoint objective", f"{R}/{BR_E}/grids/euler_0050.png", "FID 38.9"),
                 ("Drift objective",    f"{R}/{BR_D}/grids/euler_0050.png",  "FID 23.2"),
                 ("Real data",          f"{R}/figures/real_cifar.png",       None)],
                f"{d}/samples_objective_cifar", a.bare,
