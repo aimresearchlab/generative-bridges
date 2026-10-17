@@ -76,6 +76,8 @@ def main():
     p.add_argument("--steps", type=int, default=40000)
     p.add_argument("--batch_size", type=int, default=128)
     p.add_argument("--lr", type=float, default=2e-4)
+    p.add_argument("--weight_decay", type=float, default=0.0,
+                   help="matched to bridges.train; AdamW would otherwise default to 0.01")
     p.add_argument("--warmup", type=int, default=500)
     p.add_argument("--ema_decay", type=float, default=0.9999)
     p.add_argument("--seed", type=int, default=0)
@@ -102,7 +104,8 @@ def main():
         model = torch.compile(model)
 
     fm = FlowMatching()
-    opt = torch.optim.AdamW(model.parameters(), lr=args.lr, betas=(0.9, 0.999))
+    opt = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.weight_decay,
+                            betas=(0.9, 0.999))
     t0, running, seen = time.time(), 0.0, 0
 
     for step in range(1, args.steps + 1):

@@ -143,6 +143,26 @@ def main():
     results = []
     if os.path.exists(out_path):
         results = json.load(open(out_path))
+
+    # A record is only reusable if it was produced under the same experiment,
+    # not merely by the same (sampler, n_steps).  Keying on the pair alone lets
+    # a rerun that points an existing output path at a different checkpoint,
+    # seed or sample count silently inherit the old numbers.  Refuse that
+    # rather than resume it: the mismatch is almost always a mistake, and a
+    # silently mixed file is very hard to detect afterwards.
+    ident = {"ckpt_step": step, "n_samples": args.n_samples, "eta": args.eta}
+    clash = [r for r in results
+             if any(k in r and r[k] != v for k, v in ident.items())]
+    if clash:
+        keys = sorted({k for r in clash for k, v in ident.items()
+                       if k in r and r[k] != v})
+        raise SystemExit(
+            f"{out_path} holds {len(clash)} record(s) measured under different "
+            f"settings ({', '.join(keys)}); this run would mix them.\n"
+            f"  now:      {ident}\n"
+            f"  on file:  "
+            + "; ".join(f"{k}={clash[0][k]}" for k in keys if k in clash[0])
+            + "\nWrite to a fresh --out path, or delete the stale file.")
     done = {(r["sampler"], r["n_steps"]) for r in results}
 
     # step-major: all samplers at each step count, cheapest first, so a usable
