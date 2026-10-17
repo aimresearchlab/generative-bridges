@@ -176,6 +176,10 @@ runs/*
 runs/*/*
 !runs/*/config.json
 
+# Small measurement records that a manuscript claim rests on are evidence, not
+# generated bulk, so they are tracked.
+!runs/fid_floors.json
+
 # Manuscript and response drafts are not kept here. This repository holds the
 # code and the instructions to reproduce the measurements; the write-ups, and in
 # particular anything quoting the referee letter, which states that it is
