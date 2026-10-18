@@ -171,9 +171,11 @@ CIFAR-10 in Table \ref{tab:coverage}.
 \caption{FID against network evaluations for five values of
 $\boldsymbol{\gamma}=\boldsymbol{\sigma}\sqrt{T}$ on MNIST, each a separately
 trained model sharing architecture, budget and evaluation code; $n=10\,000$,
-measured floor $0.70$. Left: the Euler--Maruyama scheme of Algorithm
-\ref{alg:simulation}. Right: the deterministic map obtained by deleting the
-driving increment.}
+measured floor $0.98$ (dashed). The heavier line is
+$\boldsymbol{\gamma}=0.3162$, the value used throughout the main results.
+Left: the Euler--Maruyama scheme of Algorithm \ref{alg:simulation}. Right: the
+deterministic map obtained by deleting the driving increment, which does not
+preserve the marginals and whose bias grows with $\boldsymbol{\gamma}$.}
 \label{fig:gamma}
 \end{center}
 \end{figure}
@@ -233,7 +235,9 @@ dashed rule marks the mean per-pixel variance of $\boldsymbol{\Psi}$, the value
 Proposition \ref{propconditionalvarianceprocess} requires at $t=0$. Lower panel:
 the dependence of the network output on its time argument, obtained by holding
 the state fixed and sweeping $t$, normalised by the output's own pixel standard
-deviation.}
+deviation. The two curves are the same architecture and budget trained with the
+time argument rescaled to $[0,1)$ and left on $[0,T)$ respectively; they reach
+the same training loss at every $t$ and differ in this sensitivity alone.}
 \label{fig:variance}
 \end{center}
 \end{figure}

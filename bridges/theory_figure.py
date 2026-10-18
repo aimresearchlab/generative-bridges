@@ -71,7 +71,8 @@ def main():
     # --- panel 1: the supermartingale
     ax1.set_facecolor(SURFACE)
     ax1.axhline(var_floor, color=INK_MUTED, lw=1.0, ls=(0, (4, 3)), zorder=1)
-    ax1.annotate(f"mean per-pixel Var[Y] = {var_floor:.4f}   "
+    ax1.annotate(f"mean per-pixel Var[Y] = {var_floor:.4f}" if a.bare else
+                 f"mean per-pixel Var[Y] = {var_floor:.4f}   "
                  "(what theory requires at s = 0)",
                  xy=(0.34, var_floor), xycoords=("axes fraction", "data"),
                  xytext=(0, -12), textcoords="offset points",
@@ -80,7 +81,11 @@ def main():
              mew=1.1, zorder=3, label=r"measured  tr Var[$Y\,|\,\xi_s$] / n")
     ax1.set_yscale("log")
     ax1.set_ylabel("conditional variance per pixel", fontsize=9.5, color=INK_SECONDARY)
-    ax1.set_title("Prop. 2.13 measured: the conditional variance falls monotonically to zero",
+    # Under --bare nothing explanatory is burnt in: no proposition number (which
+    # would go stale against the manuscript's numbering) and no claim. Both live
+    # in the LaTeX caption.
+    ax1.set_title("Measured conditional variance" if a.bare else
+                  "Prop. 2.13 measured: the conditional variance falls monotonically to zero",
                   fontsize=10.5, color=INK_PRIMARY, loc="left", pad=8)
     ax1.set_xlim(-0.03, 1.03)
 
@@ -90,11 +95,14 @@ def main():
              mew=1.0, label="time scaling fixed", zorder=3)
     if sens_d:
         ax2.plot(s, sens_d, color=PALETTE[1], lw=2.0, marker="s", ms=4.5, mec=SURFACE,
-                 mew=1.0, ls=(0, (5, 2)), label=r"time input on $[0,0.1)$ as published",
+                 mew=1.0, ls=(0, (5, 2)),
+                 label=(r"time input on $[0,0.1)$" if a.bare
+                        else r"time input on $[0,0.1)$ as published"),
                  zorder=3)
     ax2.set_ylabel("time sensitivity", fontsize=9.5, color=INK_SECONDARY)
     ax2.set_xlabel(r"$t/T$", fontsize=9.5, color=INK_SECONDARY)
-    ax2.set_title("The same two networks have identical loss at every s, and differ only here",
+    ax2.set_title("Time sensitivity of the trained network" if a.bare else
+                  "The same two networks have identical loss at every s, and differ only here",
                   fontsize=10.5, color=INK_PRIMARY, loc="left", pad=8)
     ax2.set_xlim(-0.03, 1.03)
 

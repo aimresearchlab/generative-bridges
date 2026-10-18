@@ -46,29 +46,44 @@ def main():
     p = argparse.ArgumentParser()
     p.add_argument("--root", default="runs")
     p.add_argument("--n_samples", type=int, default=10000)
-    p.add_argument("--floor", type=float, default=0.70)
+    p.add_argument("--floor", type=float, default=0.984,
+                   help="measured MNIST holdout floor at n=10,000 (runs/fid_floors.json)")
     p.add_argument("--out", default="runs/figures/mnist_gamma.png")
+    p.add_argument("--bare", action="store_true",
+                   help="publication form: axes, legend and neutral panel titles only. "
+                        "Everything explanatory belongs in the LaTeX caption, not burnt "
+                        "into the image.")
     a = p.parse_args()
     data = collect(a.root, a.n_samples)
     if not data:
         print("no gamma sweep data yet"); return
 
-    fig = plt.figure(figsize=(9.4, 7.4), facecolor=SURFACE)
-    axes = [fig.add_axes([0.085, 0.435, 0.415, 0.42]),
-            fig.add_axes([0.565, 0.435, 0.415, 0.42])]
+    # bare drops the heading, subtitle and prose footer, so the canvas shrinks
+    # to the panels themselves rather than leaving their space empty
+    if a.bare:
+        fig = plt.figure(figsize=(9.4, 3.5), facecolor=SURFACE)
+        axes = [fig.add_axes([0.085, 0.165, 0.405, 0.74]),
+                fig.add_axes([0.575, 0.165, 0.405, 0.74])]
+    else:
+        fig = plt.figure(figsize=(9.4, 7.4), facecolor=SURFACE)
+        axes = [fig.add_axes([0.085, 0.435, 0.415, 0.42]),
+                fig.add_axes([0.565, 0.435, 0.415, 0.42])]
     allv = [v for by in data.values() for sr in by.values() for v in sr.values()]
     lo, hi = min(min(allv), a.floor)*0.75, max(allv)*1.4
 
-    for ax, samp, title in zip(axes, ("euler", "euler_det"),
-                               ("Euler-Maruyama (correct sampler)",
-                                "Deterministic Euler (biased sampler)")):
+    titles = (("Euler\u2013Maruyama", "Deterministic Euler") if a.bare else
+              ("Euler-Maruyama (correct sampler)", "Deterministic Euler (biased sampler)"))
+    for ax, samp, title in zip(axes, ("euler", "euler_det"), titles):
         ax.set_facecolor(SURFACE)
         ax.axhline(a.floor, color=INK_M, lw=1.0, ls=(0,(4,3)), zorder=1)
         for i,(g, by) in enumerate(data.items()):
             if samp not in by: continue
             xs = sorted(by[samp]); ys=[by[samp][x] for x in xs]
-            lbl = f"$\\gamma$ = {g:g}" + ("  (published)" if abs(g-PUBLISHED)<1e-3 else "")
-            ax.plot(xs, ys, color=PALETTE[i%8], lw=2.2 if abs(g-PUBLISHED)<1e-3 else 1.8,
+            mark = abs(g - PUBLISHED) < 1e-3
+            # under --bare the heavier line marks the value used throughout and
+            # the caption names it; no word is burnt into the image
+            lbl = f"$\\gamma$ = {g:g}" + ("" if a.bare or not mark else "  (published)")
+            ax.plot(xs, ys, color=PALETTE[i%8], lw=2.6 if mark else 1.5,
                     marker="o", ms=4.8, mec=SURFACE, mew=1.0, label=lbl, zorder=3)
         ax.set_xscale("log"); ax.set_yscale("log"); ax.set_ylim(lo,hi)
         xs_all = sorted({k for by in data.values() for sr in by.values() for k in sr})
@@ -86,9 +101,10 @@ def main():
         for t in leg.get_texts(): t.set_color(INK_S)
     axes[0].set_ylabel("FID  (lower is better)", fontsize=9.5, color=INK_S)
 
-    fig.text(0.085, 0.965, r"Sensitivity to the bridge noise scale $\gamma^2=\sigma^2 T$",
+    if not a.bare:
+      fig.text(0.085, 0.965, r"Sensitivity to the bridge noise scale $\gamma^2=\sigma^2 T$",
              fontsize=13.5, color=INK_P, ha="left", va="top")
-    fig.text(0.085, 0.925,
+      fig.text(0.085, 0.925,
              "One UNet, budget and evaluation throughout; only the driving process's scale changes.",
              fontsize=9.5, color=INK_S, ha="left", va="top")
     cap = (
@@ -105,8 +121,9 @@ def main():
         "should scale with gamma and vanish as gamma -> 0. Right panel tests that on images; left "
         "panel shows what the correct sampler does with the same models."
     )
-    fig.text(0.085, 0.345, "\n".join(textwrap.wrap(cap, 112)), fontsize=8.2,
-             color=INK_S, ha="left", va="top", linespacing=1.6)
+    if not a.bare:
+        fig.text(0.085, 0.345, "\n".join(textwrap.wrap(cap, 112)), fontsize=8.2,
+                 color=INK_S, ha="left", va="top", linespacing=1.6)
     os.makedirs(os.path.dirname(a.out), exist_ok=True)
     fig.savefig(a.out, dpi=190, facecolor=SURFACE)
     print(f"wrote {a.out}  ({len(data)} gamma values)")
