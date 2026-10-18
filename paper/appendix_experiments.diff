@@ -1,0 +1,39 @@
+--- /tmp/app.bak	2026-10-17 17:59:59.450987663 +0100
++++ sections/appendix_experiments.tex	2026-10-17 18:03:55.774379784 +0100
+@@ -62,9 +62,10 @@
+ \end{center}
+ \end{figure}
+ 
+-On CIFAR-10 the correction moves FID at fifty network evaluations from $42.14$ to
++On CIFAR-10 the correction moves FID at fifty network evaluations from $38.93$ to
+ $23.23$ at $\boldsymbol{\gamma}=0.3162\,\boldsymbol{I}$, holding architecture,
+-budget and evaluation code fixed. The same asymmetry is present on MNIST and is
++budget, sampler and evaluation code fixed; both entries are Euler--Maruyama at
++$n=2000$. The same asymmetry is present on MNIST and is
+ marginally larger by the endpoint ratio, $12.4$ against CIFAR-10's $10.3$ at
+ $t=0.995\,T$, yet in velocity units the MNIST terminal error is $3.70$ against
+ CIFAR-10's $11.15$: near-binary digits settle their coarse structure well before
+@@ -265,8 +266,9 @@
+ \includegraphics[width=\textwidth]{figures/samples_objective.pdf}
+ \caption{CIFAR-10 at fifty network evaluations with
+ $\boldsymbol{\sigma}=\boldsymbol{I}$, $T=0.1$, under the two regression targets
+-at matched architecture, optimiser and budget. Both figures are quoted at
+-$n=2000$, the sample count at which both were measured. The velocity-trained
++at matched architecture, optimiser, sampler and budget. Both panels are
++Euler--Maruyama and both figures are quoted at $n=2000$, the sample count at
++which both were measured. The velocity-trained
+ panel resolves object boundaries and surface texture left diffuse by the
+ endpoint-trained panel, which is the terminal region of the bridge that the
+ uniform weight discounts.}
+@@ -290,8 +292,9 @@
+ \begin{figure}[htbp]
+ \begin{center}
+ \includegraphics[width=\textwidth]{figures/samples_models.pdf}
+-\caption{CIFAR-10 at fifty network evaluations under one architecture, one
+-optimiser and one training budget.}
++\caption{CIFAR-10 at fifty network evaluations under one architecture and one
++training budget. Optimisation is AdamW throughout; the random-bridge panel uses
++zero weight decay and the three baselines AdamW's default $10^{-2}$.}
+ \label{fig:samplesmodels}
+ \end{center}
+ \end{figure}

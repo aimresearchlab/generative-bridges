@@ -1,0 +1,149 @@
+--- /tmp/exp.bak	2026-10-17 17:59:59.449852252 +0100
++++ sections/experiments.tex	2026-10-17 18:02:10.494551086 +0100
+@@ -10,13 +10,15 @@
+ and \ref{alg:simulation} on noise-to-image generation over MNIST \cite{18} and
+ CIFAR-10 \cite{cifar2009}, and compare against simple denoising diffusion
+ \cite{12}, improved denoising diffusion \cite{13a}, their deterministic DDIM
+-samplers \cite{13b}, and conditional Flow Matching \cite{27}. Every model shares
+-one network architecture, one optimiser, one exponential-moving-average decay,
+-one batch size and one training budget, and every sample is scored through one
+-Fr\'echet Inception Distance (FID) implementation \cite{fid2017}. The only
+-differences between rows of the tables below are the generative process and its
+-simulation scheme, so no reported difference is attributable to architecture or
+-to training setup.
++samplers \cite{13b}, and conditional Flow Matching \cite{27}. Within each dataset every
++model shares one network architecture, one exponential-moving-average decay, one
++batch size and one training budget, and every sample is scored through one
++Fr\'echet Inception Distance (FID) implementation \cite{fid2017}. Optimisation is
++AdamW throughout at one learning rate and one schedule, with a single exception:
++the random-bridge runs use zero weight decay while the three baselines use
++AdamW's default $10^{-2}$, so the baselines are regularised slightly more
++strongly than the bridge. Otherwise the differences between rows of the tables
++below are the generative process and its simulation scheme.
+ 
+ \paragraph{Scope of the comparison.} Each row is a generative process simulated
+ directly from the dynamics it defines. Distillation-based approaches
+@@ -29,7 +31,8 @@
+ Section \ref{sec:gaussclaims}.
+ 
+ \paragraph{Configuration.} The network $f(\cdot\,;\boldsymbol{\Theta})$ is a UNet
+-with $64$ base channels and self-attention at the $16\times16$ and $8\times8$
++with $64$ base channels on MNIST and $128$ on CIFAR-10, and self-attention at
++the $16\times16$ and $8\times8$
+ resolutions, carrying $7.28$M parameters on MNIST and $52.54$M on CIFAR-10
+ (improved denoising diffusion carries $52.55$M, its learned reverse variance
+ doubling the output channels). Optimisation uses AdamW \cite{adamw2019} at
+@@ -55,8 +58,10 @@
+ measured rather than assumed, using the comparator a table entry uses: $n$
+ held-out real images scored against the statistics of the full reference split.
+ On CIFAR-10 this gives $14.60$ at $n=2000$, $5.85$ at $n=5000$ and $3.15$ at
+-$n=10\,000$; the $n=50\,000$ entries of Table \ref{tab:cifar} therefore sit near
+-$0.15$. Repeated simulation seeds give a standard deviation of $0.01$ to $0.07$
++$n=10\,000$. The test split caps the held-out count at $10\,000$, so the floor at
++$n=50\,000$ is extrapolated rather than measured: those three points follow
++$20470\,n^{-0.955}$ to within a maximum log residual of $0.028$, placing the
++$n=50\,000$ floor of Table \ref{tab:cifar} near $0.67$. Repeated simulation seeds give a standard deviation of $0.01$ to $0.07$
+ on the MNIST entries. On CIFAR-10 the seed spread is measured over three seeds at
+ $n=10\,000$, giving $0.12$ to $0.36$ at ten network evaluations and $0.05$ to
+ $0.09$ at fifty; since the sampling variance of FID decreases with $n$, a
+@@ -149,7 +154,8 @@
+ \begin{table}[htbp]
+ \begin{center}
+ \caption{CIFAR-10. FID against the training split, $50\,000$ generated samples
+-per entry, measured floor $0.15$. Simulation cost is the number of network
++per entry, extrapolated floor $0.67$ (measured $3.15$ at $n=10\,000$).
++Simulation cost is the number of network
+ evaluations per sample. Bold marks the best entry in each column; a dash marks a
+ configuration not run.}
+ \label{tab:cifar}
+@@ -162,20 +168,26 @@
+ uses $\boldsymbol{\sigma}=\boldsymbol{I}$ and $T=0.1$, simulated by Algorithm
+ \ref{alg:simulation} with the Euler--Maruyama scheme. Improved denoising
+ diffusion is reported with its ancestral sampler, which on CIFAR-10 is the
+-stronger of its two at every evaluation count measured.
++stronger of its two from five network evaluations upward; at one and two
++evaluations the two coincide to within $0.6$ FID, both far from convergence.
+ 
+-Below twenty network evaluations the random-bridge transport attains lower FID
+-than improved denoising diffusion: $19.21$ against $25.60$ at ten evaluations,
+-and $168.38$ against $364.42$ at two, where ancestral sampling has too few steps
+-to depart from its prior. The ordering reverses between ten and twenty
+-evaluations and improved denoising leads thereafter, reaching $6.04$ against
++From two to ten network evaluations the random-bridge transport attains lower
++FID than improved denoising diffusion: $19.21$ against $25.60$ at ten
++evaluations, and $168.38$ against $364.42$ at two, where ancestral sampling has
++too few steps to depart from its prior. At a single evaluation neither has
++departed from its prior and improved denoising is marginally ahead, $364.62$
++against $385.98$. The ordering reverses between ten and twenty evaluations and
++improved denoising leads thereafter, reaching $6.04$ against
+ $9.83$ at fifty and $5.28$ against $8.88$ at two hundred.
+ 
+ Against Flow Matching the two constructs track one another closely, as the
+ identity established above predicts. The bridge leads at two, ten, twenty, fifty
+ and one hundred evaluations and trails at one, five, two hundred and one
+-thousand; the largest difference in either direction is $1.24$ FID, at twenty
+-evaluations. At ten evaluations the gap of $0.20$ lies inside one standard
++thousand; from ten evaluations upward the largest difference in either
++direction is $1.24$ FID, at twenty. At the one- and two-evaluation extremes,
++where neither construct has converged, the differences are larger: $13.77$ in
++favour of Flow Matching at one and $5.25$ in favour of the bridge at two.
++At ten evaluations the gap of $0.20$ lies inside one standard
+ deviation of the simulation-seed spread and is reported as a tie, whereas at
+ fifty the gap of $0.60$ is roughly seven standard deviations and is resolved.
+ 
+@@ -192,8 +204,9 @@
+ \begin{table}[htbp]
+ \begin{center}
+ \caption{MNIST. FID against the training split, $50\,000$ generated samples per
+-entry, measured floor $0.15$. Mean $\pm$ standard deviation over simulation seeds
+-where repeats were run.}
++entry; the measured floor is $0.98$ at $n=10\,000$ and does not admit a
++defensible extrapolation to $50\,000$. Mean $\pm$ standard deviation over
++simulation seeds where repeats were run.}
+ \label{tab:mnist}
+ \vskip 0.1in
+ \resizebox{\textwidth}{!}{\input{tables/mnist}}
+@@ -201,16 +214,17 @@
+ \end{table}
+ 
+ On MNIST the random-bridge transport attains lower FID than improved denoising
+-diffusion at every evaluation count: $3.73$ against $10.99$ at ten evaluations
++diffusion at every evaluation count: $3.72$ against $10.99$ at ten evaluations
+ and $1.06$ against $1.93$ at one thousand. Taken across both of its samplers the
+ strongest baseline entry is $1.24$, obtained by improved denoising with DDIM at
+ one hundred evaluations, against $1.06$ for the bridge. Against Flow Matching the
+-bridge leads below twenty evaluations ($49.42$ against $54.09$ at two; $9.46$
+-against $10.34$ at five; $3.73$ against $4.17$ at ten; $1.89$ against $2.05$ at
+-twenty) and trails from fifty upward ($1.27$ against $1.24$; $1.17$ against
++bridge leads from two to twenty evaluations ($49.42$ against $54.09$ at two;
++$9.46$ against $10.34$ at five; $3.72$ against $4.13$ at ten; $1.89$ against
++$2.05$ at twenty), trails at a single evaluation ($346.30$ against $298.68$),
++and trails from fifty upward ($1.27$ against $1.23$; $1.17$ against
+ $1.07$; $1.12$ against $1.02$; $1.06$ against $1.02$). The ordering with respect
+-to improved denoising differs from CIFAR-10, where the bridge leads only below
+-twenty evaluations.
++to improved denoising differs from CIFAR-10, where the bridge leads only from
++two to ten evaluations.
+ 
+ Both DDIM baselines deteriorate past one hundred evaluations, reaching $16.30$
+ and $13.26$ at one thousand. Clipping the forward variance at $0.999$ leaves the
+@@ -300,12 +314,14 @@
+ \begin{enumerate}
+ \item On CIFAR-10, at matched architecture, training budget and evaluation code,
+ the random-bridge transport attains lower FID than improved denoising diffusion
+-below twenty network evaluations ($19.21$ against $25.60$ at ten) and higher FID
+-above that point ($9.83$ against $6.04$ at fifty). On MNIST it attains lower FID
++from two to ten network evaluations ($19.21$ against $25.60$ at ten) and higher
++FID from twenty upward ($9.83$ against $6.04$ at fifty). On MNIST it attains lower FID
+ at every evaluation count tested ($1.06$ against $1.93$ at one thousand).
+-\item Against Flow Matching the two are close throughout, the bridge leading
+-below twenty evaluations on both datasets and trailing above fifty; the largest
+-difference on CIFAR-10 is $1.24$ FID.
++\item Against Flow Matching the two are close throughout. On MNIST the bridge
++leads from two to twenty evaluations and trails at one and from fifty upward. On CIFAR-10
++it leads at two and from ten to one hundred, and trails at one, five, two
++hundred and one thousand; from ten evaluations upward the largest difference in
++either direction is $1.24$ FID.
+ \item Quality improves monotonically through two hundred evaluations and rises
+ by $3.9$ per cent at one thousand, a terminal rise improved denoising diffusion
+ also exhibits at $5.9$ per cent and deterministic Flow Matching does not.

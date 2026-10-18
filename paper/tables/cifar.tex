@@ -1,0 +1,12 @@
+\begin{tabular}{lccccccccc}
+\toprule
+Model & \multicolumn{9}{c}{Network evaluations per sample} \\
+\cmidrule(lr){2-10}
+ & 1 & 2 & 5 & 10 & 20 & 50 & 100 & 200 & 1000 \\
+\midrule
+Random-bridge, Euler--Maruyama & 385.98 & \textbf{168.38} & 43.99 & \textbf{19.21} & 12.26 & 9.83 & 9.17 & 8.88 & 9.23 \\
+Flow Matching & 372.21 & 173.63 & \textbf{41.64} & 19.41 & 13.50 & 10.43 & 9.35 & 8.82 & 8.43 \\
+Improved denoising, ancestral & \textbf{364.62} & 364.42 & 46.57 & 25.60 & \textbf{11.04} & \textbf{6.04} & \textbf{5.30} & \textbf{5.28} & \textbf{5.60} \\
+Improved denoising, DDIM & 364.62 & 363.91 & 70.17 & 33.69 & -- & -- & -- & -- & -- \\
+\bottomrule
+\end{tabular}

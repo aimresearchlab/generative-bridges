@@ -180,9 +180,13 @@ runs/*/*
 # generated bulk, so they are tracked.
 !runs/fid_floors.json
 
-# Manuscript and response drafts are not kept here. This repository holds the
-# code and the instructions to reproduce the measurements; the write-ups, and in
-# particular anything quoting the referee letter, which states that it is
-# confidential and for the authors' use, live outside it.
+# Anything quoting the referee letter stays out of this repository: the letter
+# states that it is confidential and for the authors' use. notes/ holds those
+# drafts (including reviewer_response.tex) and is ignored.
+#
+# paper/ is the exception and is tracked: it carries the two manuscript
+# subsections, their tables and the one regenerated figure, so the team can
+# review the corrections of 17-18 October against the code they came from.
+# It is manuscript content only -- no referee material, and not main_Final.tex.
 notes/
 .scratch/
