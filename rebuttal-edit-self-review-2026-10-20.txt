@@ -1,0 +1,529 @@
+REBUTTAL NUMERICAL AND PROSE PROPOSALS FOR STEFANO
+20 October 2026
+
+Scope
+Items 1-12 below cover the proposed numerical and prose changes only.
+Reference-only items 13-22 have been removed from this review file.
+The accepted manuscript-reference updates remain in the rebuttal source.
+
+Current status
+The numerical and substantive wording proposals below are NOT currently applied
+to the response. Only reference-related updates remain in the local response
+source. Those response edits have not yet been pushed to Overleaf. This report
+is shared for Stefano to decide which numerical and prose changes to make.
+
+BEFORE is the current response wording, with the accepted references.
+AFTER is the earlier proposed numerical/prose change, for Stefano to assess.
+Both sides use the same accepted reference targets and reference-introduction
+wording, so reference-only differences do not appear in the comparisons.
+The displayed LaTeX and mathematical expressions are otherwise preserved.
+The floor expansion is shown because it was proposed, but its renewed verdict
+recommends against keeping it as written. No new shorter version is applied.
+
+Each item retains the three explicit self-evaluation answers and a renewed
+verdict. These are recommendations for review, not instructions that have
+already been carried out. Keep, modify or reject the substantive proposals
+with the underlying experimental context in mind.
+
+Evidence and limits
+The assessment uses the manuscript, tables, captions and displayed figure
+labels. No new experiment or hidden checkpoint analysis supports these edits.
+Not every BEFORE is demonstrably wrong: in particular, the manuscript does not
+prove that a fourth floor measurement never existed elsewhere.
+The original referee letter is unavailable in this checkout, so assessments of
+what is minimally necessary rely on the response's point headings.
+
+This report is shared in the repository for review. It does not apply any of
+the proposed changes to the manuscript or rebuttal source.
+
+==============================================================================
+ITEM 1: Opening description of the evaluation
+
+BEFORE
+
+The evaluation was rebuilt from first principles: one architecture, one
+optimiser, one EMA decay, one batch size, one training budget and one FID
+implementation across every row, so that only the generative process and its
+sampler differ.
+
+AFTER
+
+The evaluation was rebuilt from first principles: one architecture, one
+optimiser, one EMA decay, one batch size, one training budget and one FID
+implementation across every row. The random-bridge runs use zero weight decay
+and the three baselines use AdamW's default $10^{-2}$. Apart from this
+weight-decay difference, only the generative process and its sampler differ.
+
+SELF-EVALUATION
+
+1. What was wrong with BEFORE, and how was it brazenly obvious to a reviewer?
+
+The response said that only the generative process and sampler differ. Section 3.1.1 explicitly discloses different weight decay. That is a direct, reviewer-visible inconsistency if the sentence is read literally. This assessment needs no checkpoint, code inference or new experiment.
+
+2. How does AFTER diminish the strength of the rebuttal?
+
+The added exception makes the experimental-control claim less absolute. It does not change scores, but it acknowledges an existing difference in training settings. The BEFORE was rhetorically stronger; the manuscript already contained the qualification.
+
+3. How much does AFTER overshare beyond a minimally satisfactory answer to the reviewer's question?
+
+The exception is relevant because this paragraph explicitly claims that only two things differ. Stating the two decay values once is reasonable. Repeating them elsewhere would be unnecessary. No conclusion about how much weight decay affected performance is warranted or added.
+
+4. Renewed verdict: does it make sense to keep AFTER?
+
+KEEP a concise exception. Do not call it rhetorically neutral. The current AFTER is defensible, although it could be shorter. Keep the existing architecture and budget argument.
+
+==============================================================================
+ITEM 2: First objective-ablation comparison
+
+BEFORE
+
+Regressing the drift instead lowers CIFAR-10 FID at $50$ network evaluations from
+$42.14$ to $23.23$ at the same $\gamma$, architecture and budget, and is the
+largest single effect measured. It also explains the step-count behaviour the
+referees asked about: refining the sampling grid spends more time integrating
+through exactly the region the uniform objective discounted, which is why
+additional steps made the original configuration worse.
+
+AFTER
+
+Regressing the drift instead lowers CIFAR-10 FID at $50$ network evaluations from
+$38.93$ to $23.23$ at the same $\gamma$, architecture and budget, and is the
+largest single effect measured. Both measurements use Euler--Maruyama at
+$n=2000$. It also explains the step-count behaviour the
+referees asked about: refining the sampling grid spends more time integrating
+through exactly the region the uniform objective discounted, which is why
+additional steps made the original configuration worse.
+
+SELF-EVALUATION
+
+1. What was wrong with BEFORE, and how was it brazenly obvious to a reviewer?
+
+Appendix A.1 and Figure 4 use 38.93 versus 23.23 for the matched Euler-Maruyama comparison. The response quoted 42.14 versus 23.23 for the described objective comparison. A reviewer can see the numerical mismatch directly. This does not prove 42.14 was an invalid result for every configuration.
+
+2. How does AFTER diminish the strength of the rebuttal?
+
+The quoted FID improvement falls from 18.91 to 15.70, a 40.3% reduction from the corrected starting FID. That reduces the quoted effect size. The direction of improvement and the existing causal explanation are unchanged. I have not independently established the unchanged superlative "largest single effect measured" from every underlying ablation.
+
+3. How much does AFTER overshare beyond a minimally satisfactory answer to the reviewer's question?
+
+Saying that the sampler is matched directly supports attributing the difference to the objective. The sample count identifies the manuscript's comparison but is optional if brevity is the priority. No extra limitation or criticism is needed.
+
+4. Renewed verdict: does it make sense to keep AFTER?
+
+KEEP 38.93 and a short matched-sampler statement. The n=2000 detail is optional, particularly in the repeated quotation. Leave the existing causal explanation and superlative for Stefano to own; do not pretend the correction independently validates them.
+
+==============================================================================
+ITEM 3: Associate editor 3: matched baseline conditions
+
+BEFORE
+
+Conditional flow matching is added at matched architecture, optimiser, EMA decay,
+batch size, training budget, data split, evaluation code and hardware
+(Tables~\ref{tab:cifar} and~\ref{tab:mnist}). Rectified flow with the linear path
+is the same objective and is not reported separately. DDIM is reported for both
+diffusion baselines, and improved denoising diffusion with both of its samplers,
+the stronger one used for the comparison on each dataset.
+
+AFTER
+
+Conditional flow matching is added at matched architecture, optimiser, EMA decay,
+batch size, training budget, data split, evaluation code and hardware, apart from
+the weight-decay difference disclosed above
+(Tables~\ref{tab:cifar} and~\ref{tab:mnist}). Rectified flow with the linear path
+is the same objective and is not reported separately. DDIM is reported for both
+diffusion baselines, and improved denoising diffusion with both of its samplers,
+the stronger one used for the comparison on each dataset.
+
+SELF-EVALUATION
+
+1. What was wrong with BEFORE, and how was it brazenly obvious to a reviewer?
+
+The paragraph described matching without stating the weight-decay exception explicitly disclosed in Section 3.1.1. AdamW itself is shared, so "matched optimiser" alone is ambiguous rather than demonstrably false. The literal all-settings-matched reading is contradicted by the manuscript.
+
+2. How does AFTER diminish the strength of the rebuttal?
+
+The exception slightly weakens the impression of perfectly matched training. It does not change the evidence that modern baselines were added, their budgets, or their reported performance.
+
+3. How much does AFTER overshare beyond a minimally satisfactory answer to the reviewer's question?
+
+A short reference to the exception already disclosed above is enough. The AFTER does that and adds no new numerical detail. It is repetitive, but serves the claim made in this particular paragraph.
+
+4. Renewed verdict: does it make sense to keep AFTER?
+
+KEEP the short exception if this sentence continues to describe matching so broadly. Do not add a second account of the decay values or speculate about their effect.
+
+==============================================================================
+ITEM 4: Associate editor 4: cost at matched quality
+
+BEFORE
+
+At equal quality the bridge is the cheapest route to FID $15$ and above
+($10$ evaluations against improved denoising's $12$ at FID $20$) and the most
+expensive to FID $10$ and below ($47$ against $23$). The advantage is a factor of
+$1.2$ in evaluations at FID $20$, not an order of magnitude, and
+Section~\ref{sec:gaussclaims} states it at that size.
+
+AFTER
+
+At equal quality the bridge is the cheapest route to FID $15$ and above
+($10$ evaluations against improved denoising's $12$ at FID $20$). At FID $10$
+and $9$, it requires fewer evaluations than Flow Matching and more than improved
+denoising ($47$ against $65$ and $23$, respectively, at FID $10$). The advantage
+is a factor of
+$1.2$ in evaluations at FID $20$, not an order of magnitude, and
+Section~\ref{sec:gaussclaims} states it at that size.
+
+SELF-EVALUATION
+
+1. What was wrong with BEFORE, and how was it brazenly obvious to a reviewer?
+
+The manuscript's cost table has 47 bridge evaluations, 65 Flow Matching evaluations and 23 improved-denoising evaluations at FID 10. At FID 9 it has 151, 157 and 27. The bridge is therefore not the most expensive of the three at those targets. This is directly checkable from the table.
+
+2. How does AFTER diminish the strength of the rebuttal?
+
+It does not diminish the bridge's comparison with Flow Matching; it improves it. The relative disadvantage to improved denoising remains. The FID 20 advantage of 1.2 is unchanged. Restricting the statement to FID 10 and 9 avoids extrapolating to unreported targets.
+
+3. How much does AFTER overshare beyond a minimally satisfactory answer to the reviewer's question?
+
+One sentence stating the ordering is sufficient. Giving all three counts at FID 10 is useful support but optional because the table already supplies them. There is no need for a new discussion of limitations.
+
+4. Renewed verdict: does it make sense to keep AFTER?
+
+KEEP the corrected ordering and the existing 1.2 claim. The added three-way numeric example can be shortened without changing the argument.
+
+==============================================================================
+ITEM 5: Associate editor 5: sampling-budget coverage
+
+BEFORE
+
+Sensitivity is reported for the diffusion scale over five separately trained
+values of $\gamma$ (Figure~\ref{fig:gamma}), for the sampler over three schemes,
+and for the discretisation grid over nine step counts from $1$ to $1000$ for
+every method. The terminal time and the diffusion scale are shown to be one
+parameter rather than two, since training and sampling depend on $\sigma$ and $T$
+only through $\gamma^2=\sigma^2T$, which removes one of the sensitivity axes the
+point asks for and collapses two reported tuning decisions into one.
+
+AFTER
+
+Sensitivity is reported for the diffusion scale over five separately trained
+values of $\gamma$ (Figure~\ref{fig:gamma}), for the sampler over three schemes,
+and for the discretisation grid over up to nine step counts from $1$ to
+$1000$. The terminal time and the diffusion scale are shown to be one
+parameter rather than two, since training and sampling depend on $\sigma$ and $T$
+only through $\gamma^2=\sigma^2T$, which removes one of the sensitivity axes the
+point asks for and collapses two reported tuning decisions into one.
+
+SELF-EVALUATION
+
+1. What was wrong with BEFORE, and how was it brazenly obvious to a reviewer?
+
+The response said nine counts were tested "for every method". The CIFAR-10 table has DDIM values only at 1, 2, 5 and 10 evaluations, followed by dashes. Its caption defines a dash as a configuration not run. That directly contradicts the literal universal claim.
+
+2. How does AFTER diminish the strength of the rebuttal?
+
+The AFTER narrows the stated breadth of testing. It does not change the measured scores, the range available for other rows, or the diffusion-scale and sampler comparisons. It is less absolute about completeness.
+
+3. How much does AFTER overshare beyond a minimally satisfactory answer to the reviewer's question?
+
+Very little. "Up to nine" and removing "for every method" are compact corrections. No list of missing configurations or explanation of why they were omitted was added.
+
+4. Renewed verdict: does it make sense to keep AFTER?
+
+KEEP the concise range correction. It is supported by the visible table and is already close to the minimum necessary change.
+
+==============================================================================
+ITEM 6: Associate editor 6: FID-floor passage
+
+BEFORE
+
+The FID implementation is described in Section~\ref{sec:gausssetup}: a single
+clamped affine map from $[-1,1]$ to 8-bit with no per-image rescaling on either
+side, Inception-v3 pool3 statistics over the full reference split, and a matrix
+square root by eigendecomposition that returns exactly $0$ on identical inputs
+and $2048.0000$ on a unit analytic shift. MNIST is zero-padded to $32\times32$,
+replicated to three channels and resized to $299\times299$ by the same bilinear
+path as CIFAR-10, so the grayscale and colour pipelines differ only in the input.
+Achievable floors are measured rather than assumed, at four sample counts, using
+the comparator a table entry uses.
+
+AFTER
+
+The FID implementation is described in Section~\ref{sec:gausssetup}: a single
+clamped affine map from $[-1,1]$ to 8-bit with no per-image rescaling on either
+side, Inception-v3 pool3 statistics over the full reference split, and a matrix
+square root by eigendecomposition that returns exactly $0$ on identical inputs
+and $2048.0000$ on a unit analytic shift. MNIST is zero-padded to $32\times32$,
+replicated to three channels and resized to $299\times299$ by the same bilinear
+path as CIFAR-10, so the grayscale and colour pipelines differ only in the input.
+Achievable floors are measured using the comparator a table entry uses. On
+CIFAR-10, measurements at $n=2000$, $5000$ and $10\,000$ support an extrapolated
+floor of approximately $0.67$ at $n=50\,000$. On MNIST, the measured floor is
+$0.98$ at $n=10\,000$; no defensible extrapolation to $n=50\,000$ is reported.
+
+SELF-EVALUATION
+
+1. What was wrong with BEFORE, and how was it brazenly obvious to a reviewer?
+
+The paper documents three CIFAR-10 measurement counts and a 50,000-sample extrapolation, but that does NOT establish that a fourth measurement never existed elsewhere. A reviewer could ask where the fourth count is documented. Calling the original count brazenly false went beyond the manuscript evidence.
+
+2. How does AFTER diminish the strength of the rebuttal?
+
+The AFTER replaces a simple statement of empirical calibration with a more detailed account that foregrounds extrapolation and the lack of a defensible MNIST extrapolation. It can make the response sound less assured about calibration. The MNIST wording is already in the manuscript, but repeating it here gives the limitation additional prominence. No model FID score changes.
+
+3. How much does AFTER overshare beyond a minimally satisfactory answer to the reviewer's question?
+
+Substantial. The count list, 0.67, 0.98, both 50,000-sample qualifications and especially "no defensible extrapolation" are more than needed to repair an unsupported count. I do not have the original referee question to establish that all these details were requested. The added information being in the paper does not make repeating it necessary.
+
+4. Renewed verdict: does it make sense to keep AFTER?
+
+DO NOT KEEP the expanded floor AFTER as written. A minimal option is to remove the unsupported count while retaining the original general explanation; alternatively ask Stefano to verify the fourth count. The shorter sentence proposed in chat has NOT been applied. Do not silently restore an unverified count or invent extra concessions.
+
+==============================================================================
+ITEM 7: Reviewer 1.2: variance-profile values
+
+BEFORE
+
+One measurement now does both. Proposition~\ref{propconditionalvarianceprocess} concerns
+$\mathrm{Var}[Y\mid\xib_s]$, and the law of total variance shows that the
+exact-posterior sampler discards exactly $((u-s)/(1-s))^2\mathrm{Var}[Y\mid\xib_s]$
+by replacing the posterior with a point mass at its mean. No additional network
+is needed to estimate it: the training objective already does. Restoring it
+raises that sampler's coverage from $0.602$ to $0.639$ at fifty evaluations,
+matching Euler--Maruyama's $0.638$, and leaves Euler--Maruyama unchanged to four
+decimal places, as the identity requires since it makes no point-mass
+approximation (Appendix~\ref{app:variance}). The estimated profile also meets
+the proposition's two boundary conditions: $0.24565$ against
+$\mathrm{Var}[Y]=0.25315$ at $s=0$, zero at $s=1$, and decreasing at all $41$
+grid points.
+
+AFTER
+
+One measurement now does both. Proposition~\ref{propconditionalvarianceprocess} concerns
+$\mathrm{Var}[Y\mid\xib_s]$, and the law of total variance shows that the
+exact-posterior sampler discards exactly $((u-s)/(1-s))^2\mathrm{Var}[Y\mid\xib_s]$
+by replacing the posterior with a point mass at its mean. No additional network
+is needed to estimate it: the training objective already does. Restoring it
+raises that sampler's coverage from $0.602$ to $0.639$ at fifty evaluations,
+matching Euler--Maruyama's $0.638$, and leaves Euler--Maruyama unchanged to four
+decimal places, as the identity requires since it makes no point-mass
+approximation (Appendix~\ref{app:variance}). The estimated profile also meets
+the proposition's two boundary conditions: $0.21346$ against
+$\mathrm{Var}[Y]=0.21201$ at $s=0$, zero at $s=1$, and decreasing at all $21$
+grid points.
+
+SELF-EVALUATION
+
+1. What was wrong with BEFORE, and how was it brazenly obvious to a reviewer?
+
+Appendix A.4 reports measured 0.21346, theoretical 0.21201 and 21 sampled times. The response quoted 0.24565, 0.25315 and 41. Those are directly observable numerical mismatches. This entry does not reassess the unchanged variance formula or terminal-zero wording.
+
+2. How does AFTER diminish the strength of the rebuttal?
+
+The updated initial measurement agrees more closely with theory: approximately 0.7% difference instead of approximately 3%. The sampling grid has fewer reported points, 21 instead of 41. The coverage improvement and theoretical argument remain as written. It is not uniformly a weakening.
+
+3. How much does AFTER overshare beyond a minimally satisfactory answer to the reviewer's question?
+
+None in the numerical substitutions. They replace existing values rather than adding explanation. I did not add the terminal 9e-5 value or any new caveat about the mathematical identity.
+
+4. Renewed verdict: does it make sense to keep AFTER?
+
+KEEP the three numerical substitutions. Do not expand the scientific interpretation in this task. This is a clear manuscript-to-response reconciliation.
+
+==============================================================================
+ITEM 8: Reviewer 1.5: architecture and training-control argument
+
+BEFORE
+
+Excluded by construction rather than by argument: every method in every table
+uses the same UNet, with parameter counts verified identical to the submitted
+architecture ($7.28$\,M and $52.54$\,M), the same optimiser, schedule, EMA, batch
+size, step count and evaluation code. The only differences between rows are the
+generative process and the sampler.
+
+AFTER
+
+Excluded by construction rather than by argument: every method in every table
+uses the same UNet, with parameter counts verified identical to the submitted
+architecture ($7.28$\,M and $52.54$\,M), the same optimiser, schedule, EMA, batch
+size, step count and evaluation code. Apart from the weight-decay difference
+disclosed above, the only differences between rows are the generative process
+and the sampler.
+
+SELF-EVALUATION
+
+1. What was wrong with BEFORE, and how was it brazenly obvious to a reviewer?
+
+The final sentence said the only differences are process and sampler. Section 3.1.1 explicitly lists weight decay as another difference. That final sentence is directly contradicted by the manuscript if read without an exception. This does not independently refute the paragraph's architecture argument.
+
+2. How does AFTER diminish the strength of the rebuttal?
+
+The exception qualifies the claim of complete training control. The phrase "Excluded by construction rather than by argument" and the architecture defence are retained. The AFTER does not establish that weight decay has no effect, nor does it estimate its effect.
+
+3. How much does AFTER overshare beyond a minimally satisfactory answer to the reviewer's question?
+
+The single cross-reference to the already-disclosed exception is proportionate to the categorical sentence it qualifies. Repeating the decay values or arguing about their impact would be unnecessary.
+
+4. Renewed verdict: does it make sense to keep AFTER?
+
+KEEP the short exception. Do not replace the architecture defence or introduce new parameter-count discussion under this edit. Stefano remains responsible for the broader rebuttal argument.
+
+==============================================================================
+ITEM 9: Reviewer 1.5: repeated objective-ablation comparison
+
+BEFORE
+
+Four components are ablated separately: the training objective, endpoint against
+drift at matched $\gamma$ ($42.14$ against $23.23$ FID at fifty evaluations, the
+largest effect measured); the sampler, over three schemes; the diffusion scale,
+over five separately trained values; and the discarded posterior variance, on and
+off. The objective and the sampler are also crossed, which shows the unweighted
+objective understates the cost of deleting the diffusion term by a factor of
+three.
+
+AFTER
+
+Four components are ablated separately: the training objective, endpoint against
+drift at matched $\gamma$ and sampler ($38.93$ against $23.23$ FID at fifty
+evaluations, both Euler--Maruyama at $n=2000$, the largest effect measured); the
+sampler, over three schemes; the diffusion scale,
+over five separately trained values; and the discarded posterior variance, on and
+off. The objective and the sampler are also crossed, which shows the unweighted
+objective understates the cost of deleting the diffusion term by a factor of
+three.
+
+SELF-EVALUATION
+
+1. What was wrong with BEFORE, and how was it brazenly obvious to a reviewer?
+
+This repeats 42.14 versus 23.23 where Appendix A.1 reports 38.93 versus 23.23 for the matched-sampler comparison. The mismatch is visible without code access. The AFTER also explicitly identifies the sampler as matched, as the manuscript does.
+
+2. How does AFTER diminish the strength of the rebuttal?
+
+As in item 2, the numerical improvement is smaller, 15.70 rather than 18.91 FID. The four-component ablation argument, the existing "largest effect" wording and the factor-of-three sentence are retained. The correction does not independently verify those unchanged claims.
+
+3. How much does AFTER overshare beyond a minimally satisfactory answer to the reviewer's question?
+
+The matched-sampler phrase is pertinent. Repeating "both Euler-Maruyama at n=2000" after the earlier detailed quotation is more than strictly necessary; the number and a short "matched sampler" qualification could suffice.
+
+4. Renewed verdict: does it make sense to keep AFTER?
+
+KEEP the corrected number and matched-sampler context. MINIMISE repeated setup detail if desired. Do not alter or newly endorse the factor-of-three result without Stefano's evidence.
+
+==============================================================================
+ITEM 10: Reviewer 1.7: sample-image budgets
+
+BEFORE
+
+Sample grids at matched budget are in Appendix~\ref{app:samples}, including a
+direct comparison of the two training objectives at matched $\gamma$ and budget,
+and samples against sampling budget from one to two hundred evaluations. Timing
+is in Section~\ref{sec:gausscost}.
+
+AFTER
+
+Sample grids at matched budget are in Appendix~\ref{app:samples}, including a
+direct comparison of the two training objectives at matched $\gamma$ and budget,
+and samples against sampling budget from two to two hundred evaluations. Timing
+is in Section~\ref{sec:gausscost}.
+
+SELF-EVALUATION
+
+1. What was wrong with BEFORE, and how was it brazenly obvious to a reviewer?
+
+Neither displayed budget grid starts at one evaluation: CIFAR-10 shows 2, 5, 10, 50 and 200; MNIST shows 2, 5, 10, 50 and 1000. The lower-bound mismatch is visible in the figure labels. However, my AFTER still says "to two hundred" without specifying CIFAR-10, so it is incomplete as a description of all sample-budget figures.
+
+2. How does AFTER diminish the strength of the rebuttal?
+
+Changing one to two narrows the claimed lower-budget illustration, without changing model results. The remaining generic upper bound of 200 also understates the MNIST illustration at 1000. It should not be presented as a fully checked account of all grids.
+
+3. How much does AFTER overshare beyond a minimally satisfactory answer to the reviewer's question?
+
+No new caveat was added, but exact bounds are unnecessary for answering where visual comparisons are supplied. "Samples at different sampling budgets" would avoid both a lengthy enumeration and the dataset ambiguity. That is a possible revision, not an edit made by this report.
+
+4. Renewed verdict: does it make sense to keep AFTER?
+
+MINIMISE rather than keep the range sentence as fully verified. The change to a lower bound of two is supported, but the current generic 200 upper bound needs dataset qualification or removal. No source change is applied here.
+
+==============================================================================
+ITEM 11: Reviewer 1.7: metrics displayed in the coverage table
+
+BEFORE
+
+Mode coverage is quantified in two independent ways. On CIFAR-10,
+Table~\ref{tab:coverage} reports precision and recall, the outlier-robust density
+and coverage, and KID, for six sampler rows at three step counts. On MNIST,
+Table~\ref{tab:cfid} reports the classifier's predicted-label histogram, where a
+dropped digit appears as a class deficit. The two agree: at ten evaluations the
+bridge's advantage is in recall rather than precision on CIFAR-10, and on MNIST
+improved denoising serves the digit $1$ at $62.9\%$ of its real frequency against
+the bridge's $81.9\%$.
+
+AFTER
+
+Mode coverage is quantified in two independent ways. On CIFAR-10,
+Table~\ref{tab:coverage} reports precision and recall, outlier-robust coverage,
+and KID, for six sampler rows at three step counts. On MNIST,
+Table~\ref{tab:cfid} reports the classifier's predicted-label histogram, where a
+dropped digit appears as a class deficit. The two agree: at ten evaluations the
+bridge's advantage is in recall rather than precision on CIFAR-10, and on MNIST
+improved denoising serves the digit $1$ at $62.9\%$ of its real frequency against
+the bridge's $81.9\%$.
+
+SELF-EVALUATION
+
+1. What was wrong with BEFORE, and how was it brazenly obvious to a reviewer?
+
+The cited coverage table displays FID, precision, recall, coverage and KID, but no density column. The response said the table reports density. A reviewer can check the header directly. This does not establish that density was not computed elsewhere.
+
+2. How does AFTER diminish the strength of the rebuttal?
+
+It removes one metric from the description of this particular table. It does not remove a table, change values, alter the recall comparison or claim that a measurement was never performed. The apparent breadth of that table's displayed metrics is slightly smaller than the BEFORE suggested.
+
+3. How much does AFTER overshare beyond a minimally satisfactory answer to the reviewer's question?
+
+None. The change removes an inaccurate item from a list and adds no explanation or concession about why it is absent.
+
+4. Renewed verdict: does it make sense to keep AFTER?
+
+KEEP the list correction. Do not expand it into a claim that density was unavailable or not computed.
+
+==============================================================================
+ITEM 12: Reviewer 1.8: CIFAR-10 performance range
+
+BEFORE
+
+Scalability in dataset size is not addressed by a curve. The two datasets differ
+in complexity and the ranking differs with them --- the bridge leads improved
+denoising diffusion at every step count on MNIST and only below twenty
+evaluations on CIFAR-10 --- which is a scalability observation, but a single
+contrast.
+
+AFTER
+
+Scalability in dataset size is not addressed by a curve. The two datasets differ
+in complexity and the ranking differs with them --- the bridge leads improved
+denoising diffusion at every step count on MNIST and from two to ten
+evaluations on CIFAR-10 --- which is a scalability observation, but a single
+contrast.
+
+SELF-EVALUATION
+
+1. What was wrong with BEFORE, and how was it brazenly obvious to a reviewer?
+
+The response said the bridge leads improved denoising below twenty evaluations. At one evaluation the table shows bridge FID 385.98 and improved denoising 364.62, so the bridge trails there. The manuscript already states the favourable range as two to ten. This exception is directly visible in the table.
+
+2. How does AFTER diminish the strength of the rebuttal?
+
+The AFTER excludes a single-evaluation regime from the favourable claim. It preserves the advantage at two, five and ten and leaves the scalability wording and dataset comparison intact. The blanket claim is narrower, so it is not rhetorically identical.
+
+3. How much does AFTER overshare beyond a minimally satisfactory answer to the reviewer's question?
+
+None. A short range phrase is replaced with another. No additional caveat, scientific explanation or analysis of scalability is added.
+
+4. Renewed verdict: does it make sense to keep AFTER?
+
+KEEP the corrected range. Do not rewrite the scalability argument as part of this correction.
+
+==============================================================================
+END OF REPORT
