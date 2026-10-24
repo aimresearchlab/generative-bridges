@@ -140,13 +140,13 @@ The last sentence becomes:
 1. **Manuscript follow-up from item 11.** `experiments.tex:247` says Appendix
    `app:coverage` reports "the outlier-robust density and coverage", but
    `tab:coverage` has no density column. Density was computed for the bridge rows
-   (`runs/metrics.log`). We either add the column (if every row has it) or change
-   the main text to "coverage". I'll check whether all rows have density and fix
-   the manuscript separately, so that the response and the paper match.
+   (`runs/metrics.log`). Could you check whether every row has density and then
+   either add the column or change the main text to "coverage", so that the
+   response and the paper match?
 2. **"Largest single effect measured" (items 2, 9)** and **"factor of three"
    (item 9)** are unchanged. You're right that correcting 42.14 doesn't re-validate
-   them. I'll check both against the γ sweep and the 2×2 runs before the response
-   goes to Overleaf. If either doesn't hold, I'll soften it.
+   them. Could you check both against the γ sweep and the 2×2 runs before the
+   response goes to Overleaf, and soften whichever doesn't hold?
 3. Once these paragraphs are in your local response source, please push it here as
    well, so the response and the manuscript are versioned together.
 
