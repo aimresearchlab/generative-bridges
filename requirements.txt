@@ -1,0 +1,9 @@
+# Direct dependencies of the bridges/ package. Exact versions were not recorded;
+# the runs under runs/ used a CUDA build of PyTorch on an NVIDIA GB10.
+torch
+torchvision
+torchaudio
+torchmetrics[image]
+numpy
+matplotlib
+pillow

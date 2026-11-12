@@ -1,0 +1,18 @@
+{
+  "dataset": "mnist",
+  "data_root": "./data",
+  "out": "runs/mnist_g0316_t1000",
+  "steps": 40000,
+  "batch_size": 128,
+  "lr": 0.0002,
+  "weight_decay": 0.0,
+  "warmup": 500,
+  "gamma": 0.3162277660168379,
+  "t_scale": 1000.0,
+  "ema_decay": 0.9999,
+  "seed": 0,
+  "ckpt_every": 10000,
+  "log_every": 200,
+  "amp": "bf16",
+  "compile": true
+}

@@ -161,3 +161,26 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 thirdparty/
+
+# reimplementation artifacts
+.venv/
+fid_cache/
+data/
+
+# Run artifacts are generated: checkpoints, grids, logs and result JSON stay
+# local. The per-run config.json is the exception -- it is the manifest that
+# pins every hyperparameter actually used, so it is tracked alongside the code
+# rather than left to depend on argparse defaults never drifting.
+runs/*
+!runs/*/
+runs/*/*
+!runs/*/config.json
+
+# Small measurement records that a manuscript claim rests on are evidence, not
+# generated bulk, so they are tracked.
+!runs/fid_floors.json
+
+# Manuscript drafts and write-ups are kept outside this repository.
+notes/
+paper/
+.scratch/

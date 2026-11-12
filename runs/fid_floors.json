@@ -1,0 +1,40 @@
+{
+  "cifar10": {
+    "measured_holdout": {
+      "2000": 14.599,
+      "5000": 5.848,
+      "10000": 3.152
+    },
+    "measured_disjoint": {
+      "2000": 24.997,
+      "5000": 10.197,
+      "10000": 5.21
+    },
+    "fit": {
+      "C": 20470.1,
+      "exponent": -0.955,
+      "max_log_residual": 0.028
+    },
+    "extrapolated_n50000": 0.667,
+    "note": "holdout = n held-out test images vs the full train split; test split caps n at 10,000 so n=50,000 is extrapolated, not measured. The three points follow C/n closely (max log residual 0.028, n*floor constant to 8%), so the extrapolation is trustworthy."
+  },
+  "mnist": {
+    "measured_holdout": {
+      "2000": 5.19,
+      "5000": 3.113,
+      "10000": 0.984
+    },
+    "measured_disjoint": {
+      "2000": 6.893,
+      "5000": 2.742,
+      "10000": 1.425
+    },
+    "fit": {
+      "C": 12522.5,
+      "exponent": -1.008,
+      "max_log_residual": 0.289
+    },
+    "extrapolated_n50000": 0.229,
+    "note": "holdout = n held-out test images vs the full train split; test split caps n at 10,000 so n=50,000 is extrapolated, not measured. The points do NOT follow a power law (max log residual 0.289, n*floor ranges 9840-15565), so extrapolated_n50000 is unreliable and should not be quoted."
+  }
+}
