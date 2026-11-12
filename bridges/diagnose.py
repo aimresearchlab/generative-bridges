@@ -30,12 +30,14 @@ import torch
 
 from .bridge import BridgeConfig, GaussianBridge
 from . import data as D
+from .device import default_device, device_type
 from .evaluate import load_model
 
 
 @torch.no_grad()
-def profile(ckpt: str, device="cuda", n: int = 2048, n_s: int = 21, seed: int = 0,
+def profile(ckpt: str, device=None, n: int = 2048, n_s: int = 21, seed: int = 0,
             n_probe: int = 17):
+    device = device or default_device()
     model, targs, step = load_model(ckpt, device, use_ema=True)
     bridge = GaussianBridge(BridgeConfig(gamma=targs["gamma"], t_scale=targs["t_scale"]))
     y = D.load(targs["dataset"], split="test")[:n].to(device)
@@ -47,7 +49,7 @@ def profile(ckpt: str, device="cuda", n: int = 2048, n_s: int = 21, seed: int = 
     for s_val in torch.linspace(0.0, 1.0, n_s).tolist():
         s = torch.full((y.shape[0],), s_val, device=device)
         xi = bridge.sample_marginal(x, y, s)
-        with torch.autocast("cuda", dtype=torch.bfloat16):
+        with torch.autocast(device_type(device), dtype=torch.bfloat16):
             pred = model(xi, s * bridge.cfg.t_scale).float()
             # sweep the time argument with the state held fixed
             probes = torch.linspace(0.0, 1.0, n_probe, device=device)

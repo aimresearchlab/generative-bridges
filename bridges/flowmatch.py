@@ -34,6 +34,7 @@ import torch
 
 from . import data as D
 from .data import InfiniteSampler, load
+from .device import default_device, describe, device_type
 from .ema import EMA
 from .unet import build_unet
 
@@ -89,7 +90,7 @@ def main():
     torch.manual_seed(args.seed)
     torch.backends.cuda.matmul.allow_tf32 = True
     torch.backends.cudnn.benchmark = True
-    device = "cuda"
+    device = default_device()
     os.makedirs(args.out, exist_ok=True)
     cfg = dict(vars(args)); cfg["method"] = "flow_matching"; cfg["t_scale"] = T_SCALE
     json.dump(cfg, open(os.path.join(args.out, "config.json"), "w"), indent=2)
@@ -99,6 +100,7 @@ def main():
     model = build_unet(args.dataset).to(device)
     print(f"flow matching | {args.dataset} | {sum(q.numel() for q in model.parameters())/1e6:.1f}M params",
           flush=True)
+    print(describe(device), flush=True)
     ema = EMA(model, decay=args.ema_decay, warmup=True)
     if args.compile:
         model = torch.compile(model)
@@ -112,7 +114,7 @@ def main():
         for g in opt.param_groups:
             g["lr"] = args.lr * min(1.0, step / max(1, args.warmup))
         y = sampler()
-        with torch.autocast("cuda", dtype=torch.bfloat16):
+        with torch.autocast(device_type(device), dtype=torch.bfloat16):
             loss, _ = fm.training_loss(model, y)
         opt.zero_grad(set_to_none=True)
         loss.backward()

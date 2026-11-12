@@ -1,0 +1,9 @@
+# Dependencies other than PyTorch itself, shared by every GPU stack. Nothing here
+# names torch, torchvision or torchaudio, so installing this file after torch and
+# torchvision leaves those builds in place. (torchmetrics[image] needs
+# torchvision; if it is missing, pip fetches the PyPI build, which brings the
+# CUDA build of torch with it.)
+torchmetrics[image]
+numpy
+matplotlib
+pillow

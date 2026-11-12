@@ -37,6 +37,7 @@ import torch
 from . import data as D
 from .data import InfiniteSampler, load
 from .ddpm_baseline import make_betas
+from .device import default_device, describe, device_type
 from .ema import EMA
 from .respacing import respaced_posterior, uniform_grid
 from .unet import build_unet
@@ -167,7 +168,7 @@ class ImprovedDiffusion:
             ab_t = self.abar[t]
             ab_u = one if u is None else self.abar[u]
             tt = torch.full((x.shape[0],), float(t), device=device, dtype=x.dtype)
-            with torch.autocast("cuda", dtype=torch.bfloat16):
+            with torch.autocast(x.device.type, dtype=torch.bfloat16):
                 out = model(x, tt)
             eps = out[:, :x.shape[1]].float()
             x0 = (x.float() - (1 - ab_t).sqrt().float() * eps) / ab_t.sqrt().float()
@@ -191,7 +192,7 @@ class ImprovedDiffusion:
         for i, t in enumerate(idx):
             tt = torch.full((x.shape[0],), t, device=device, dtype=torch.long)
             u = idx[i + 1] if i + 1 < len(idx) else None   # None = the data end
-            with torch.autocast("cuda", dtype=torch.bfloat16):
+            with torch.autocast(x.device.type, dtype=torch.bfloat16):
                 out = model(x, tt.to(x.dtype))
             mean, logvar, _, _ = self.p_mean_logvar(out.float(), x.float(), tt,
                                                     clip=clip, jump=(t, u))
@@ -228,7 +229,7 @@ def main():
     torch.manual_seed(args.seed)
     torch.backends.cuda.matmul.allow_tf32 = True
     torch.backends.cudnn.benchmark = True
-    device = "cuda"
+    device = default_device()
     os.makedirs(args.out, exist_ok=True)
     cfg = dict(vars(args)); cfg["method"] = "improved_ddpm"; cfg["t_scale"] = T_SCALE
     json.dump(cfg, open(os.path.join(args.out, "config.json"), "w"), indent=2)
@@ -238,6 +239,7 @@ def main():
     model = build_unet(args.dataset, learn_sigma=True).to(device)
     print(f"improved ddpm ({args.schedule}, learned sigma) | {args.dataset} | "
           f"{sum(q.numel() for q in model.parameters())/1e6:.1f}M params", flush=True)
+    print(describe(device), flush=True)
     ema = EMA(model, decay=args.ema_decay, warmup=True)
     if args.compile:
         model = torch.compile(model)
@@ -251,7 +253,7 @@ def main():
         for g in opt.param_groups:
             g["lr"] = args.lr * min(1.0, step / max(1, args.warmup))
         y = sampler()
-        with torch.autocast("cuda", dtype=torch.bfloat16):
+        with torch.autocast(device_type(device), dtype=torch.bfloat16):
             loss, parts = diff.training_loss(model, y, lam=args.vlb_weight)
         opt.zero_grad(set_to_none=True)
         loss.backward()

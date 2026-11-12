@@ -4,6 +4,7 @@
 # point, which is correct respacing. Only the ancestral path was wrong.
 set -x
 cd "$(dirname "$0")"
+. ./gpu_temp.sh
 LOCK=runs/.gpu.lock
 if [ -e "$LOCK" ] && kill -0 "$(cat "$LOCK" 2>/dev/null)" 2>/dev/null; then exit 1; fi
 if pgrep -f "bridges\.(evaluate|train|flowmatch|ddpm_baseline|improved_ddpm)" > /dev/null; then
@@ -17,10 +18,10 @@ COOL_MIN=${COOL_MIN:-8}; COOL_ABOVE=${COOL_ABOVE:-70}; COOL_EVERY_H=${COOL_EVERY
 LAST_COOL=$(date +%s)
 cool () {
   local t0 now since_h; now=$(date +%s); since_h=$(( (now-LAST_COOL)/3600 ))
-  t0=$(nvidia-smi --query-gpu=temperature.gpu --format=csv,noheader)
-  if [ "$since_h" -lt "$COOL_EVERY_H" ] || [ "$t0" -lt "$COOL_ABOVE" ]; then
-    echo "[cooldown] $(date +%H:%M:%S) GPU ${t0}C, ${since_h}h -> running on"; return 0; fi
-  echo "[cooldown] $(date +%H:%M:%S) GPU ${t0}C after ${since_h}h -> pausing ${COOL_MIN} min"
+  t0=$(gpu_temp)
+  if [ "$since_h" -lt "$COOL_EVERY_H" ] || [ "${t0:-0}" -lt "$COOL_ABOVE" ]; then
+    echo "[cooldown] $(date +%H:%M:%S) GPU ${t0:-?}C, ${since_h}h -> running on"; return 0; fi
+  echo "[cooldown] $(date +%H:%M:%S) GPU ${t0:-?}C after ${since_h}h -> pausing ${COOL_MIN} min"
   sleep $((COOL_MIN*60)); LAST_COOL=$(date +%s)
 }
 

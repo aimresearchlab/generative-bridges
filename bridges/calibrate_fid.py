@@ -20,6 +20,7 @@ from __future__ import annotations
 import argparse
 
 from . import data as D
+from .device import default_device
 from .fid import InceptionStats, frechet_distance, stats_from_tensor
 
 
@@ -30,7 +31,7 @@ def main():
     p.add_argument("--mode", default="holdout", choices=["holdout", "disjoint", "both"])
     a = p.parse_args()
 
-    dev = "cuda"
+    dev = default_device()
     st = InceptionStats(dev)
     x = D.load(a.dataset, split="train")
     te = D.load(a.dataset, split="test")

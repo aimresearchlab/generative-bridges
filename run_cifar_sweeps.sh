@@ -21,6 +21,7 @@
 # from whatever is in the output JSON, so nothing finished is repeated.
 set -x
 cd "$(dirname "$0")"
+. ./gpu_temp.sh
 
 LOCK=runs/.gpu.lock
 if [ -e "$LOCK" ] && kill -0 "$(cat "$LOCK" 2>/dev/null)" 2>/dev/null; then
@@ -41,10 +42,10 @@ COOL_MIN=${COOL_MIN:-8}; COOL_ABOVE=${COOL_ABOVE:-70}; COOL_EVERY_H=${COOL_EVERY
 LAST_COOL=$(date +%s)
 cool () {
   local t0 now h; now=$(date +%s); h=$(( (now-LAST_COOL)/3600 ))
-  t0=$(nvidia-smi --query-gpu=temperature.gpu --format=csv,noheader)
-  if [ "$h" -lt "$COOL_EVERY_H" ] || [ "$t0" -lt "$COOL_ABOVE" ]; then
-    echo "[cooldown] GPU ${t0}C, ${h}h -> running on"; return 0; fi
-  echo "[cooldown] GPU ${t0}C after ${h}h -> pausing ${COOL_MIN} min"
+  t0=$(gpu_temp)
+  if [ "$h" -lt "$COOL_EVERY_H" ] || [ "${t0:-0}" -lt "$COOL_ABOVE" ]; then
+    echo "[cooldown] GPU ${t0:-?}C, ${h}h -> running on"; return 0; fi
+  echo "[cooldown] GPU ${t0:-?}C after ${h}h -> pausing ${COOL_MIN} min"
   sleep $((COOL_MIN*60)); LAST_COOL=$(date +%s)
 }
 

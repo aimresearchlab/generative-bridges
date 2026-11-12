@@ -7,11 +7,64 @@ attributable to architecture or training setup.
 
 ## Environment
 
+The code runs on NVIDIA GPUs under CUDA and on AMD GPUs under ROCm. PyTorch
+drives both through the same `torch.cuda` API, so nothing in `bridges/` is
+vendor-specific and only the PyTorch install differs.
+
+NVIDIA:
+
 ```
 python -m venv .venv && .venv/bin/pip install -r requirements.txt
 ```
 
-Measured on one NVIDIA GB10 (DGX Spark, 119 GB unified memory, sm_121).
+AMD: the `torch` on PyPI is the CUDA build, so PyTorch comes from AMD's index,
+built for the GPU's architecture, and everything else from
+`requirements-common.txt`, which names no PyTorch package:
+
+```bash
+python -m venv .venv
+AMD=https://stable.repo.amd.com/rocm/whl-next/
+.venv/bin/pip install --index-url $AMD rocm-bootstrap
+GFX=$(.venv/bin/rocm-bootstrap-detect --unique | head -n 1)     # e.g. gfx1151
+.venv/bin/pip install --index-url $AMD "torch[device-$GFX]==2.13.0+rocm10.1.0" \
+    "torchvision[device-$GFX]==0.28.0+rocm10.1.0" torchaudio
+.venv/bin/pip install -r requirements-common.txt
+```
+
+Do not install `requirements.txt` into this environment, as it would replace
+the ROCm build. Pin the full local version (`+rocm10.1.0`): the index also
+carries ROCm 10.0 builds, and the resolver can pick one of those to satisfy a
+looser pin. On gfx1151 the ROCm 10.0 build of torch 2.14 measured about half
+the matmul throughput of the 10.1 build. When moving to newer versions, keep
+torch and torchvision a matched pair: AMD's torchvision does not pin its torch,
+and a mismatched pair installs cleanly but loses torchvision's compiled
+operators. torch 2.14.0 with torchvision 0.29.0a0, both `+rocm10.1.0`, is also
+a working pair, but on gfx1151 it trained and sampled no faster than the pair
+above.
+
+Either way, check the result with
+
+```bash
+.venv/bin/python -m bridges.device --compile
+```
+
+which names the GPU and the stack, then runs a bf16 training step and a short
+sampling run. Every script uses the first GPU; `BRIDGES_DEVICE` selects another
+(`cuda:1`), or the CPU (`cpu`) for a check on a machine without one.
+
+The reported results were measured on one NVIDIA GB10 (DGX Spark, 119 GB
+unified memory, sm_121). The pipeline also runs unchanged on an AMD Ryzen AI
+Max+ 395 (Radeon 8060S, gfx1151, 128 GB unified memory) under ROCm 10.1, where
+CIFAR-10 training settles at 1.2-1.3 steps/s against the GB10's 2.85, about 9 h
+per model, and sampling runs at about 0.6 of the GB10's rate (MNIST, 3,270
+against 5,530 network evaluations per second at batch 1000). Keep `--compile`
+there: it nearly doubles sampling throughput on that GPU. The throughput
+columns (`imgs_per_s`) are properties of the machine, so do not mix records
+from different machines in one table. The MNIST classifier behind
+`bridges.mnist_metric` is trained on first use and cached as
+`runs/mnist_classifier.pt`; copy that file across rather than retraining it if
+its numbers are to be compared with ones measured elsewhere.
+
 Memory is unified, so a second GPU job competes with the first for the same
 pool: every script here takes `runs/.gpu.lock` and refuses to start while
 another holds it. Run one at a time.
@@ -114,7 +167,10 @@ practical ceiling.
 | `run_controls.sh` | the gamma = 0 control and FID against training step |
 
 Each holds `runs/.gpu.lock`, pauses to cool when the GPU has been above 70 C for
-three hours, and can be interrupted with
+three hours, and can be interrupted with the command below. The temperature
+comes from `nvidia-smi` on NVIDIA and from the amdgpu driver's sensor on AMD
+(`gpu_temp.sh`); the two are not the same measurement, so set `COOL_ABOVE` for
+the machine.
 
 ```bash
 kill $(cat runs/.gpu.lock); pkill -f '^\.venv/bin/python -m bridges'

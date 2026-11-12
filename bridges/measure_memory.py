@@ -19,6 +19,7 @@ import torch
 
 from . import data as D
 from .bridge import BridgeConfig, GaussianBridge
+from .device import default_device, describe, device_type
 from .flowmatch import FlowMatching
 from .improved_ddpm import ImprovedDiffusion
 from .unet import build_unet
@@ -26,11 +27,11 @@ from .unet import build_unet
 MB = 1024 ** 2
 
 
-def peak(fn, device="cuda"):
+def peak(fn, device):
     fn()                                              # warm up allocator / kernels
-    torch.cuda.synchronize(); torch.cuda.reset_peak_memory_stats()
-    fn(); torch.cuda.synchronize()
-    return torch.cuda.max_memory_allocated() / MB
+    torch.cuda.synchronize(device); torch.cuda.reset_peak_memory_stats(device)
+    fn(); torch.cuda.synchronize(device)
+    return torch.cuda.max_memory_allocated(device) / MB
 
 
 def main():
@@ -41,7 +42,10 @@ def main():
     p.add_argument("--n_steps", type=int, default=50)
     p.add_argument("--out", default="runs/memory.json")
     a = p.parse_args()
-    dev, c = "cuda", D.channels(a.dataset)
+    dev, c = default_device(), D.channels(a.dataset)
+    if device_type(dev) != "cuda":
+        raise SystemExit("measure_memory reads the GPU allocator's peak; it needs a GPU")
+    print(describe(dev), flush=True)
     y = D.load(a.dataset, split="train")[:a.batch_size].to(dev)
     shape = (a.sample_batch, c, D.IMAGE_SIZE, D.IMAGE_SIZE)
 
@@ -49,19 +53,19 @@ def main():
     for name, learn_sigma, make in [
         ("Bridge (drift)", False, lambda: GaussianBridge(BridgeConfig(gamma=0.3162277660168379, param="drift"))),
         ("Flow matching", False, lambda: FlowMatching()),
-        ("Improved DDPM", True, lambda: ImprovedDiffusion(1000, "cosine", "cuda")),
+        ("Improved DDPM", True, lambda: ImprovedDiffusion(1000, "cosine", dev)),
     ]:
         model = build_unet(a.dataset, learn_sigma=learn_sigma).to(dev)
         sch = make()
         opt = torch.optim.AdamW(model.parameters(), lr=2e-4)
 
         def train_step():
-            with torch.autocast("cuda", dtype=torch.bfloat16):
+            with torch.autocast(device_type(dev), dtype=torch.bfloat16):
                 loss, _ = sch.training_loss(model, y)
             opt.zero_grad(set_to_none=True); loss.backward(); opt.step()
 
         def sample():
-            with torch.no_grad(), torch.autocast("cuda", dtype=torch.bfloat16):
+            with torch.no_grad(), torch.autocast(device_type(dev), dtype=torch.bfloat16):
                 if isinstance(sch, GaussianBridge):
                     sch.sample(model, shape, dev, n_steps=a.n_steps, sampler="euler")
                 elif isinstance(sch, FlowMatching):
@@ -69,7 +73,7 @@ def main():
                 else:
                     sch.sample(model, shape, dev, n_steps=a.n_steps)
 
-        tr, sa = peak(train_step), peak(sample)
+        tr, sa = peak(train_step, dev), peak(sample, dev)
         rows.append({"method": name,
                      "params_M": round(sum(q.numel() for q in model.parameters()) / 1e6, 2),
                      "train_peak_MB": round(tr, 1), "train_batch": a.batch_size,

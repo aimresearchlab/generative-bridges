@@ -17,6 +17,7 @@
 # values converge on flow matching. This sweep tests that on images.
 set -x
 cd "$(dirname "$0")"
+. ./gpu_temp.sh
 
 LOCK=runs/.gpu.lock
 while pgrep -f "[.]venv/bin/python -m bridges" > /dev/null; do sleep 60; done
@@ -30,10 +31,10 @@ COOL_MIN=${COOL_MIN:-8}; COOL_ABOVE=${COOL_ABOVE:-70}; COOL_EVERY_H=${COOL_EVERY
 LAST_COOL=$(date +%s)
 cool () {
   local t0 now since_h; now=$(date +%s); since_h=$(( (now-LAST_COOL)/3600 ))
-  t0=$(nvidia-smi --query-gpu=temperature.gpu --format=csv,noheader)
-  if [ "$since_h" -lt "$COOL_EVERY_H" ] || [ "$t0" -lt "$COOL_ABOVE" ]; then
-    echo "[cooldown] $(date +%H:%M:%S) GPU ${t0}C, ${since_h}h -> running on"; return 0; fi
-  echo "[cooldown] $(date +%H:%M:%S) GPU ${t0}C after ${since_h}h -> pausing ${COOL_MIN} min"
+  t0=$(gpu_temp)
+  if [ "$since_h" -lt "$COOL_EVERY_H" ] || [ "${t0:-0}" -lt "$COOL_ABOVE" ]; then
+    echo "[cooldown] $(date +%H:%M:%S) GPU ${t0:-?}C, ${since_h}h -> running on"; return 0; fi
+  echo "[cooldown] $(date +%H:%M:%S) GPU ${t0:-?}C after ${since_h}h -> pausing ${COOL_MIN} min"
   sleep $((COOL_MIN*60)); LAST_COOL=$(date +%s)
 }
 

@@ -22,6 +22,7 @@ import torch
 
 from .bridge import BridgeConfig, GaussianBridge
 from . import data as D
+from .device import default_device, describe, device_type
 from .fid import (InceptionStats, activations, frechet_distance, real_stats,
                   stats_from_tensor)
 from .unet import build_unet
@@ -36,18 +37,19 @@ def load_model(ckpt_path: str, device, use_ema: bool = True):
     return model.to(device).eval(), args, ck["step"]
 
 
-def make_scheme(targs):
+def make_scheme(targs, device=None):
     """Return (scheme, samplers) for either a bridge or a flow-matching checkpoint."""
+    device = device or default_device()
     if targs.get("method") == "flow_matching":
         from .flowmatch import FlowMatching
         return FlowMatching(t_scale=targs["t_scale"]), ["flow_euler"]
     if targs.get("method") == "improved_ddpm":
         from .improved_ddpm import ImprovedDiffusion
-        d = ImprovedDiffusion(targs["timesteps"], targs["schedule"], "cuda")
+        d = ImprovedDiffusion(targs["timesteps"], targs["schedule"], device)
         return d, ["improved_ancestral", "improved_ddim"]
     if targs.get("method") == "ddpm":
         from .ddpm_baseline import Diffusion
-        d = Diffusion(targs["timesteps"], targs["schedule"], "cuda")
+        d = Diffusion(targs["timesteps"], targs["schedule"], device)
         return d, ["ddim", "ddpm_ancestral"]   # default; an explicit --samplers wins
     return GaussianBridge(BridgeConfig(
         gamma=targs["gamma"], t_scale=targs["t_scale"],
@@ -66,7 +68,7 @@ def generate(model, bridge, n: int, dataset: str, device, n_steps: int,
     while done < n:
         b = min(batch_size, n - done)
         x0 = torch.randn(b, c, D.IMAGE_SIZE, D.IMAGE_SIZE, device=device, generator=g)
-        with torch.autocast("cuda", dtype=torch.bfloat16, enabled=amp):
+        with torch.autocast(device_type(device), dtype=torch.bfloat16, enabled=amp):
             if sampler == "improved_ddim":
                 s = bridge.sample_ddim(model, (b, c, D.IMAGE_SIZE, D.IMAGE_SIZE), device,
                                        n_steps=n_steps, generator=g, x_init=x0)
@@ -113,17 +115,18 @@ def main():
     # did the caller name samplers, or are we on the default list?
     args.samplers_explicit = any(a.startswith("--samplers") for a in __import__("sys").argv)
 
-    device = "cuda"
+    device = default_device()
     torch.backends.cuda.matmul.allow_tf32 = True
     model, targs, step = load_model(args.ckpt, device, use_ema=not args.raw_weights)
     dataset = targs["dataset"]
-    bridge, forced = make_scheme(targs)
+    bridge, forced = make_scheme(targs, device)
     if forced is not None and not args.samplers_explicit:
         args.samplers = forced
     print(f"loaded {args.ckpt} (step {step}, dataset {dataset}, "
           f"method {targs.get('method', 'bridge')}, gamma {targs.get('gamma', 0.0):.4f}, "
           f"param {targs.get('param', 'endpoint')}, "
           f"t_scale {targs['t_scale']})", flush=True)
+    print(describe(device), flush=True)
     if args.compile:
         model = torch.compile(model)
 

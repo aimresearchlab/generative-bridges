@@ -29,6 +29,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from . import data as D
+from .device import default_device
 from .fid import frechet_distance
 
 CKPT = "runs/mnist_classifier.pt"
@@ -119,24 +120,25 @@ def main():
     p.add_argument("--compile", action="store_true")
     p.add_argument("--out")
     a = p.parse_args()
-    load_or_train("cuda")
+    dev = default_device()
+    load_or_train(dev)
     if a.train_only:
         return
     if not a.ckpt:
-        print(json.dumps(evaluate(D.load("mnist", split="test"), "cuda"), indent=2))
+        print(json.dumps(evaluate(D.load("mnist", split="test"), dev), indent=2))
         return
 
     import torch
     from .evaluate import generate, load_model, make_scheme
-    model, targs, step = load_model(a.ckpt, "cuda")
+    model, targs, step = load_model(a.ckpt, dev)
     if a.compile:
         model = torch.compile(model)
-    scheme, _ = make_scheme(targs)
+    scheme, _ = make_scheme(targs, dev)
     rows = []
     for n in a.steps:
-        x = generate(model, scheme, a.n_samples, "mnist", "cuda", n,
+        x = generate(model, scheme, a.n_samples, "mnist", dev, n,
                      a.sampler, 1.0, a.batch_size, 0)
-        r = evaluate(x, "cuda")
+        r = evaluate(x, dev)
         r.update({"ckpt": a.ckpt, "sampler": a.sampler, "n_steps": n,
                   "n_samples": a.n_samples})
         rows.append(r)

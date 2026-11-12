@@ -8,6 +8,7 @@ import torch
 
 from .bridge import BridgeConfig, GaussianBridge
 from .data import InfiniteSampler, channels, load
+from .device import default_device, describe, device_type
 from .ema import EMA
 from .unet import build_unet
 
@@ -47,7 +48,7 @@ def main():
     torch.backends.cuda.matmul.allow_tf32 = True
     torch.backends.cudnn.allow_tf32 = True
     torch.backends.cudnn.benchmark = True
-    device = "cuda"
+    device = default_device()
     os.makedirs(args.out, exist_ok=True)
     with open(os.path.join(args.out, "config.json"), "w") as fh:
         json.dump(vars(args), fh, indent=2)
@@ -59,6 +60,7 @@ def main():
     model = build_unet(args.dataset).to(device)
     n_par = sum(q.numel() for q in model.parameters())
     print(f"model: {n_par/1e6:.1f}M params", flush=True)
+    print(describe(device), flush=True)
     ema = EMA(model, decay=args.ema_decay, warmup=True)
     if args.compile:
         model = torch.compile(model)
@@ -78,7 +80,7 @@ def main():
             g["lr"] = args.lr * min(1.0, step / max(1, args.warmup))
 
         y = sampler()
-        with torch.autocast("cuda", dtype=amp_dtype, enabled=args.amp != "fp32"):
+        with torch.autocast(device_type(device), dtype=amp_dtype, enabled=args.amp != "fp32"):
             loss, _ = bridge.training_loss(model, y)
         opt.zero_grad(set_to_none=True)
         loss.backward()

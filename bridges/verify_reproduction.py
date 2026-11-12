@@ -13,9 +13,10 @@ Correspondence being tested, with t = sT and gamma^2 = sigma^2 T:
 import math, torch, torch.nn as nn
 from simple_bridge import SimpleBrownianBridgeDiffusion
 from bridges.bridge import GaussianBridge, BridgeConfig
+from bridges.device import default_device
 
 torch.manual_seed(0)
-dev = 'cuda'
+dev = default_device()
 
 class Toy(nn.Module):
     """Small deterministic net that genuinely depends on both x and t."""

@@ -1,9 +1,10 @@
 # Direct dependencies of the bridges/ package. Exact versions were not recorded;
 # the runs under runs/ used a CUDA build of PyTorch on an NVIDIA GB10.
+#
+# This file installs PyTorch from PyPI, which is the NVIDIA (CUDA) build on
+# Linux. On an AMD GPU do not use it: install PyTorch from AMD's index and then
+# requirements-common.txt, as REPRODUCE.md describes.
 torch
 torchvision
 torchaudio
-torchmetrics[image]
-numpy
-matplotlib
-pillow
+-r requirements-common.txt

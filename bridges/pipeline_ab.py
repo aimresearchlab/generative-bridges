@@ -14,6 +14,7 @@ import torch
 
 from . import data as D
 from .bridge import BridgeConfig, GaussianBridge
+from .device import default_device
 from .evaluate import generate, load_model
 from .fid import InceptionStats, frechet_distance, real_stats, stats_from_tensor
 from .legacy_fid import legacy_stats
@@ -30,7 +31,7 @@ def main():
     p.add_argument("--out", default="runs/pipeline_ab.json")
     a = p.parse_args()
 
-    device = "cuda"
+    device = default_device()
     model, targs, step = load_model(a.ckpt, device, use_ema=True)
     dataset = targs["dataset"]
     ch = D.channels(dataset)

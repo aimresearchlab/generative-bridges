@@ -31,6 +31,7 @@ import numpy as np
 import torch
 
 from . import data as D
+from .device import default_device, device_type
 from .evaluate import generate, load_model, make_scheme
 from .fid import InceptionStats, activations, frechet_distance, real_stats, stats_from_tensor
 from .metrics import precision_recall
@@ -51,7 +52,7 @@ def variance_profile(model, bridge, dataset, device, n_grid=41, n_samples=2048,
         xi = bridge.sample_marginal(X, Y, s_t, noise=E)
         tot = 0.0
         for i in range(0, len(xi), batch):
-            with torch.autocast("cuda", dtype=torch.bfloat16):
+            with torch.autocast(device_type(device), dtype=torch.bfloat16):
                 yh = bridge.endpoint(model, xi[i:i + batch], float(s))
             tot += float(((yh.float() - Y[i:i + batch]) ** 2).sum())
         ss.append(float(s)); vs.append(tot / Y.numel())
@@ -76,11 +77,11 @@ def main():
     p.add_argument("--out", default="runs/variance_restore.json")
     a = p.parse_args()
 
-    dev = "cuda"
+    dev = default_device()
     torch.backends.cuda.matmul.allow_tf32 = True
     model, targs, step = load_model(a.ckpt, dev)
     dataset = targs["dataset"]
-    bridge, _ = make_scheme(targs)
+    bridge, _ = make_scheme(targs, dev)
     if a.compile:
         model = torch.compile(model)
 
@@ -109,7 +110,7 @@ def main():
                 b = min(a.batch_size, a.n_samples - i)
                 x0 = torch.randn(b, D.channels(dataset), D.IMAGE_SIZE, D.IMAGE_SIZE,
                                  device=dev, generator=g)
-                with torch.autocast("cuda", dtype=torch.bfloat16):
+                with torch.autocast(device_type(dev), dtype=torch.bfloat16):
                     out.append(bridge.sample(model, x0.shape, dev, n_steps=n,
                                              sampler=sampler, eta=1.0, generator=g,
                                              x_init=x0, var_profile=vp).float().cpu())
