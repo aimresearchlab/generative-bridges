@@ -109,8 +109,16 @@ class WFBridge:
         if a == 0:
             return torch.full((len(idx),), float((self.psi * c.x).sum()),
                               dtype=torch.float64)
-        num = c.pow[a][self.i0][:, None] * c.pow[b]            # p(xi_s=i | Y=y) up to Z
-        post = num[idx] * self.psi[None, :]
+        # The chain pinned at y passes through i at generation a with probability
+        #     P^a[i0,i] P^b[i,y] / P^G[i0,y].
+        # The denominator depends on y, so it does not cancel when normalising
+        # over y: the posterior is psi[y] P^b[i,y] / P^G[i0,y]. The numerator
+        # factor P^a[i0,i] is constant in y and does cancel. Endpoints the chain
+        # cannot reach from i0 get zero weight, as Psi << mu_{Z_T} requires.
+        reach = c.pow[c.G][self.i0]
+        prior = torch.where(reach > 0, self.psi / reach.clamp(min=1e-300),
+                            torch.zeros_like(self.psi))
+        post = c.pow[b][idx] * prior[None, :]
         post = post / post.sum(1, keepdim=True).clamp(min=1e-300)
         return (post * c.x[None, :]).sum(1)
 
